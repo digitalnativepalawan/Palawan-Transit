@@ -103,7 +103,14 @@ export const AdminDashboard = ({
       : null;
 
     switch (activeTab) {
-      case 'DASHBOARD': return <DashboardView bookings={filteredBookings} routes={filteredRoutes} />;
+      case 'DASHBOARD': return (
+        <DashboardView 
+          bookings={filteredBookings} 
+          routes={filteredRoutes} 
+          onUpdateStatus={onUpdateBookingStatus}
+          isOperatorPortal={isOperatorPortal}
+        />
+      );
       case 'BOOKINGS': return (
         <BookingsView 
           bookings={filteredBookings} 
@@ -557,7 +564,41 @@ const ManualBookingModal = ({ routes, onClose, onSave }: { routes: Route[], onCl
   );
 };
 
-const DashboardView = ({ bookings, routes }: { bookings: Booking[], routes: Route[] }) => {
+const DashboardView = ({ 
+  bookings, 
+  routes, 
+  onUpdateStatus,
+  isOperatorPortal 
+}: { 
+  bookings: Booking[], 
+  routes: Route[], 
+  onUpdateStatus: (id: string, status: BookingStatus) => void,
+  isOperatorPortal?: boolean
+}) => {
+  const [verifyCode, setVerifyCode] = React.useState('');
+  const [verifyError, setVerifyError] = React.useState('');
+  const [verifying, setVerifying] = React.useState(false);
+
+  const handleVerify = () => {
+    setVerifying(true);
+    setVerifyError('');
+    
+    setTimeout(() => {
+      const booking = bookings.find(b => b.referenceCode.toUpperCase() === verifyCode.trim().toUpperCase());
+      if (booking) {
+        if (booking.status === 'ACCEPTED' || booking.status === 'CONFIRMED') {
+          setVerifyError('BOOKING ALREADY ACCEPTED');
+        } else {
+          onUpdateStatus(booking.id, 'ACCEPTED');
+          setVerifyCode('');
+        }
+      } else {
+        setVerifyError('INVALID REFERENCE CODE');
+      }
+      setVerifying(false);
+    }, 800);
+  };
+
   const pendingBookings = bookings.filter(b => b.status === 'PENDING');
   const confirmedBookings = bookings.filter(b => b.status === 'CONFIRMED' || b.status === 'ACCEPTED');
   
@@ -595,6 +636,36 @@ const DashboardView = ({ bookings, routes }: { bookings: Booking[], routes: Rout
           </div>
         ))}
       </div>
+
+      {isOperatorPortal && (
+        <div className="bg-gold/5 border border-gold/20 p-8">
+          <div className="max-w-xl">
+            <h3 className="text-2xl text-white italic mb-2">Verify Reference Code</h3>
+            <p className="ui-label text-muted text-[10px] mb-6 tracking-[0.2em]">ENTER THE CUSTOMER'S PIN TO CLAIM THE BOOKING</p>
+            
+            <div className="flex gap-4">
+              <div className="flex-1 relative">
+                <input 
+                  value={verifyCode}
+                  onChange={e => setVerifyCode(e.target.value)}
+                  placeholder="PT-2026-XXXXX"
+                  className="w-full bg-surface border border-white/10 p-4 text-white font-ui tracking-widest focus:border-gold outline-none transition-all"
+                />
+                {verifyError && (
+                  <p className="absolute -bottom-6 left-0 text-danger ui-label text-[8px] tracking-widest">{verifyError}</p>
+                )}
+              </div>
+              <button 
+                onClick={handleVerify}
+                disabled={verifying || !verifyCode}
+                className="px-8 bg-gold text-ink ui-label text-[10px] font-bold tracking-[0.2em] hover:bg-white transition-all disabled:opacity-50"
+              >
+                {verifying ? 'VERIFYING...' : 'ACCEPT PIN'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
         {/* Revenue Chart */}

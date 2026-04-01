@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Share2, Copy, CalendarPlus, ArrowLeft, Search, Filter, Anchor, Truck, Waves, Check, Settings, UserCheck, MapPin, Plus, Trash2, ExternalLink, Shield } from 'lucide-react';
+import { Share2, Copy, CalendarPlus, ArrowLeft, Search, Filter, Anchor, Truck, Waves, Check, Settings, UserCheck, MapPin, Plus, Trash2, ExternalLink, Shield, MessageSquare } from 'lucide-react';
 import { Navbar, Footer, RouteCard, DiamondDivider, StatusBadge } from './components/UI';
 import { SearchWidget, BookingModal } from './components/Booking';
 import { AdminDashboard } from './components/Dashboards';
@@ -24,6 +24,8 @@ export default function App() {
   const [searchParams, setSearchParams] = React.useState<{ from: string; to: string; date: string; seats: number } | null>(null);
   const [userRole, setUserRole] = React.useState<'USER' | 'ADMIN' | 'OPERATOR'>('USER');
   const [activeFilter, setActiveFilter] = React.useState<'ALL' | 'SHARED' | 'PRIVATE' | '4X4' | 'BOAT'>('ALL');
+  const [routesPage, setRoutesPage] = React.useState(1);
+  const ROUTES_PER_PAGE = 6;
   
   // Local data (simulating database)
   const [routes, setRoutes] = React.useState<Route[]>(INITIAL_ROUTES);
@@ -61,6 +63,36 @@ export default function App() {
         'https://picsum.photos/seed/boat2/800/600',
         'https://picsum.photos/seed/boat3/800/600'
       ]
+    },
+    {
+      id: 'op-3',
+      name: 'Montenegro Lines',
+      phone: '639111222333',
+      type: 'BOAT',
+      location: 'Coron',
+      rating: 4.5,
+      whatsapp: '639111222333',
+      description: 'Fast ferry services connecting El Nido and Coron.'
+    },
+    {
+      id: 'op-4',
+      name: 'Recaro Transport',
+      phone: '639444555666',
+      type: 'VAN',
+      location: 'Puerto Princesa',
+      rating: 4.7,
+      whatsapp: '639444555666',
+      description: 'Reliable shuttle services to Port Barton.'
+    },
+    {
+      id: 'op-6',
+      name: 'Palawan 4x4 Expeditions',
+      phone: '639777888999',
+      type: 'PRIVATE',
+      location: 'Puerto Princesa',
+      rating: 4.9,
+      whatsapp: '639777888999',
+      description: 'Off-road luxury expeditions across Palawan.'
     }
   ]);
   const [bookings, setBookings] = React.useState<Booking[]>([]);
@@ -150,6 +182,11 @@ export default function App() {
   };
 
   const handleUpdateBookingStatus = (bookingId: string, status: BookingStatus) => {
+    const booking = bookings.find(b => b.id === bookingId);
+    if (booking && status === 'ACCEPTED') {
+      const message = `Hello ${booking.customerName}, I am your operator for Palawan Transit booking ${booking.referenceCode}.`;
+      window.open(`https://wa.me/${booking.customerPhone}?text=${encodeURIComponent(message)}`, '_blank');
+    }
     setBookings(prev => prev.map(b => b.id === bookingId ? { ...b, status } : b));
   };
 
@@ -201,6 +238,9 @@ export default function App() {
     if (activeFilter === 'BOAT') return r.mode === 'BANGKA' || r.mode === 'ISLAND_HOPPING';
     return true;
   });
+
+  const paginatedRoutes = filteredRoutes.slice(0, routesPage * ROUTES_PER_PAGE);
+  const hasMoreRoutes = paginatedRoutes.length < filteredRoutes.length;
 
   return (
     <div className="min-h-screen bg-ink selection:bg-gold selection:text-ink overflow-x-hidden">
@@ -449,7 +489,7 @@ export default function App() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {filteredRoutes.map((route, i) => (
+              {paginatedRoutes.map((route, i) => (
                 <motion.div
                   key={route.id}
                   initial={{ opacity: 0, y: 20 }}
@@ -466,6 +506,17 @@ export default function App() {
                 </div>
               )}
             </div>
+
+            {hasMoreRoutes && (
+              <div className="mt-16 text-center">
+                <button 
+                  onClick={() => setRoutesPage(prev => prev + 1)}
+                  className="px-12 py-4 border border-gold/30 text-gold ui-label text-[10px] hover:bg-gold hover:text-ink transition-all tracking-[0.3em]"
+                >
+                  LOAD MORE ROUTES
+                </button>
+              </div>
+            )}
           </motion.main>
         )}
 
@@ -497,11 +548,15 @@ export default function App() {
               >
                 <div className="absolute top-0 left-0 w-full h-1 bg-gold" />
                 <span className="ui-label text-muted block mb-4">REFERENCE CODE</span>
-                <h2 className="font-ui text-4xl text-gold tracking-[0.1em]">{bookingRef}</h2>
+                <h2 className="font-ui text-4xl text-gold tracking-[0.1em] mb-4">{bookingRef}</h2>
+                <p className="ui-label text-[8px] text-muted tracking-[0.2em]">PRESENT THIS CODE TO YOUR OPERATOR</p>
               </motion.div>
 
-              <div className="grid grid-cols-3 gap-4 mb-12">
-                <button className="flex flex-col items-center gap-2 p-4 bg-surface border border-border hover:border-gold transition-colors group">
+              <div className="grid grid-cols-3 gap-4 mb-8">
+                <button 
+                  onClick={() => bookingRef && navigator.clipboard.writeText(bookingRef)}
+                  className="flex flex-col items-center gap-2 p-4 bg-surface border border-border hover:border-gold transition-colors group"
+                >
                   <Copy size={20} className="text-muted group-hover:text-gold" />
                   <span className="ui-label text-[8px]">COPY CODE</span>
                 </button>
@@ -515,12 +570,40 @@ export default function App() {
                 </button>
               </div>
 
-              <button
-                onClick={() => setPage('LANDING')}
-                className="w-full border border-border text-white py-5 ui-label tracking-[0.2em] hover:bg-surface transition-colors"
-              >
-                RETURN TO HOME
-              </button>
+              <div className="space-y-4">
+                <button 
+                  onClick={() => {
+                    if (!bookingRef) {
+                      console.error('No booking reference found');
+                      return;
+                    }
+                    const booking = bookings.find(b => b.referenceCode === bookingRef);
+                    if (booking) {
+                      const op = operators.find(o => o.id === booking.operatorId);
+                      if (op && op.whatsapp) {
+                        const message = `Hello, I have a booking with reference ${booking.referenceCode}.`;
+                        window.open(`https://wa.me/${op.whatsapp}?text=${encodeURIComponent(message)}`, '_blank');
+                      } else {
+                        console.error('Operator or WhatsApp number not found', { booking, op });
+                        // Fallback to a general support number if needed
+                        window.open(`https://wa.me/639123456789?text=${encodeURIComponent('Support: Booking ' + booking.referenceCode)}`, '_blank');
+                      }
+                    } else {
+                      console.error('Booking not found in state', { bookingRef, bookings });
+                    }
+                  }}
+                  className="w-full py-4 bg-success text-white ui-label text-[10px] font-bold tracking-[0.2em] flex items-center justify-center gap-3 hover:bg-white hover:text-ink transition-all"
+                >
+                  <MessageSquare size={16} />
+                  CONTACT OPERATOR ON WHATSAPP
+                </button>
+                <button 
+                  onClick={() => setPage('LANDING')}
+                  className="w-full border border-border text-white py-5 ui-label tracking-[0.2em] hover:bg-surface transition-colors"
+                >
+                  RETURN TO HOME
+                </button>
+              </div>
             </motion.div>
           </motion.main>
         )}
