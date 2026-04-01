@@ -1,0 +1,296 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import React from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { Minus, Plus, Calendar, MapPin, Users, Check, Clock, Share2, Copy, CalendarPlus, X, ArrowRight, CreditCard, Wallet } from 'lucide-react';
+import { Route, CITIES, TOURS, SearchType } from '../types';
+
+// --- Search Widget ---
+export const SearchWidget = ({ onSearch }: { onSearch: (from: string, to: string, date: string, seats: number) => void }) => {
+  const [searchType, setSearchType] = React.useState<SearchType>('TRANSPORT');
+  const [from, setFrom] = React.useState(CITIES[0]);
+  const [to, setTo] = React.useState(CITIES[1]);
+  const [tour, setTour] = React.useState(TOURS[0]);
+  const [date, setDate] = React.useState(new Date().toISOString().split('T')[0]);
+  const [seats, setSeats] = React.useState(1);
+
+  // When switching to Island Hopping, set 'to' to the selected tour
+  const handleSearch = () => {
+    if (searchType === 'ISLAND_HOPPING') {
+      onSearch(from, tour, date, seats);
+    } else {
+      onSearch(from, to, date, seats);
+    }
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6, delay: 0.4 }}
+      className="bg-deep border border-border p-6 w-full max-w-md mx-auto shadow-2xl relative z-10"
+    >
+      <div className="flex border-b border-border mb-6">
+        <button
+          onClick={() => setSearchType('TRANSPORT')}
+          className={`flex-1 py-3 ui-label text-[10px] tracking-[0.2em] transition-colors ${searchType === 'TRANSPORT' ? 'text-gold border-b-2 border-gold' : 'text-muted hover:text-white'}`}
+        >
+          TRANSPORTATION
+        </button>
+        <button
+          onClick={() => setSearchType('ISLAND_HOPPING')}
+          className={`flex-1 py-3 ui-label text-[10px] tracking-[0.2em] transition-colors ${searchType === 'ISLAND_HOPPING' ? 'text-gold border-b-2 border-gold' : 'text-muted hover:text-white'}`}
+        >
+          ISLAND HOPPING
+        </button>
+      </div>
+
+      <div className="space-y-4">
+        <div className="space-y-1">
+          <label className="ui-label text-muted">{searchType === 'TRANSPORT' ? 'FROM' : 'LOCATION'}</label>
+          <div className="relative">
+            <MapPin size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gold" />
+            <select
+              value={from}
+              onChange={(e) => setFrom(e.target.value)}
+              className="w-full bg-surface border border-border px-12 py-4 text-white focus:border-seafoam focus:outline-none transition-colors appearance-none"
+            >
+              {CITIES.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+        </div>
+
+        <div className="space-y-1">
+          <label className="ui-label text-muted">{searchType === 'TRANSPORT' ? 'TO' : 'SELECT TOUR'}</label>
+          <div className="relative">
+            <MapPin size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-seafoam" />
+            {searchType === 'TRANSPORT' ? (
+              <select
+                value={to}
+                onChange={(e) => setTo(e.target.value)}
+                className="w-full bg-surface border border-border px-12 py-4 text-white focus:border-seafoam focus:outline-none transition-colors appearance-none"
+              >
+                {CITIES.filter(c => c !== from).map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            ) : (
+              <select
+                value={tour}
+                onChange={(e) => setTour(e.target.value)}
+                className="w-full bg-surface border border-border px-12 py-4 text-white focus:border-seafoam focus:outline-none transition-colors appearance-none"
+              >
+                {TOURS.map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+            )}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-1">
+            <label className="ui-label text-muted">DATE</label>
+            <div className="relative group">
+              <Calendar size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted pointer-events-none group-focus-within:text-seafoam transition-colors z-20 sm:w-4 sm:h-4 sm:left-4" />
+              <input
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className="w-full bg-surface border border-border pl-9 pr-1 py-4 text-white focus:border-seafoam focus:outline-none transition-colors appearance-none relative z-10 text-[10px] sm:text-sm sm:pl-12 sm:pr-4"
+              />
+            </div>
+          </div>
+          <div className="space-y-1">
+            <label className="ui-label text-muted">SEATS</label>
+            <div className="flex items-center bg-surface border border-border h-[58px]">
+              <button
+                onClick={() => setSeats(Math.max(1, seats - 1))}
+                className="flex-grow flex items-center justify-center text-muted hover:text-white transition-colors"
+              >
+                <Minus size={16} />
+              </button>
+              <span className="w-10 text-center font-ui text-white">{seats}</span>
+              <button
+                onClick={() => setSeats(Math.min(10, seats + 1))}
+                className="flex-grow flex items-center justify-center text-muted hover:text-white transition-colors"
+              >
+                <Plus size={16} />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <button
+          onClick={handleSearch}
+          className="w-full bg-gold hover:bg-gold-light text-ink font-ui py-5 tracking-[0.2em] transition-all active:scale-[0.98]"
+        >
+          FIND ROUTES
+        </button>
+      </div>
+    </motion.div>
+  );
+};
+
+// --- Booking Modal ---
+export const BookingModal = ({ route, onClose, onComplete }: { route: Route; onClose: () => void; onComplete: (ref: string, phone: string) => void }) => {
+  const [step, setStep] = React.useState(1);
+  const [paymentMethod, setPaymentMethod] = React.useState<'ONLINE' | 'ARRIVAL'>('ONLINE');
+  const [loading, setLoading] = React.useState(false);
+  const [phone, setPhone] = React.useState('63');
+
+  const handleComplete = () => {
+    setLoading(true);
+    setTimeout(() => {
+      onComplete(`PT-2026-${Math.floor(10000 + Math.random() * 90000)}`, phone);
+    }, 2000);
+  };
+
+  return (
+    <motion.div
+      initial={{ y: '100%' }}
+      animate={{ y: 0 }}
+      exit={{ y: '100%' }}
+      transition={{ type: 'spring', damping: 28, stiffness: 350 }}
+      className="fixed inset-0 z-[100] bg-ink flex flex-col pt-20"
+    >
+      <div className="absolute top-6 right-6">
+        <button onClick={onClose} className="p-2 text-muted hover:text-white transition-colors">
+          <X size={24} />
+        </button>
+      </div>
+
+      <div className="px-6 max-w-2xl mx-auto w-full flex-grow overflow-y-auto pb-32">
+        <div className="flex justify-center gap-4 mb-12">
+          {[1, 2, 3].map(s => (
+            <div key={s} className="flex flex-col items-center gap-2">
+              <div className={`w-2 h-2 rounded-full ${step >= s ? 'bg-gold' : 'bg-border'}`} />
+              <span className={`ui-label text-[8px] ${step === s ? 'text-gold' : 'text-muted'}`}>
+                {s === 1 ? 'DETAILS' : s === 2 ? 'PAYMENT' : 'CONFIRM'}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        <header className="mb-12 text-center">
+          <h2 className="text-4xl text-white italic mb-2">{route.from} → {route.to}</h2>
+          <p className="ui-label text-muted">DEPARTING 01 APR 2026 · {route.departureTime}</p>
+        </header>
+
+        <AnimatePresence mode="wait">
+          {step === 1 && (
+            <motion.div
+              key="step1"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="space-y-6"
+            >
+              <div className="space-y-1">
+                <label className="ui-label text-muted">FULL NAME</label>
+                <input type="text" placeholder="Juan Dela Cruz" className="w-full bg-surface border-b border-border px-4 py-4 text-white focus:border-gold focus:outline-none transition-colors" />
+              </div>
+              <div className="space-y-1">
+                <label className="ui-label text-muted">EMAIL ADDRESS</label>
+                <input type="email" placeholder="juan@example.com" className="w-full bg-surface border-b border-border px-4 py-4 text-white focus:border-gold focus:outline-none transition-colors" />
+              </div>
+              <div className="space-y-1">
+                <label className="ui-label text-muted">PHONE NUMBER (WHATSAPP)</label>
+                <input 
+                  type="tel" 
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="639123456789" 
+                  className="w-full bg-surface border-b border-border px-4 py-4 text-white focus:border-gold focus:outline-none transition-colors" 
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="ui-label text-muted">SPECIAL REQUESTS</label>
+                <textarea placeholder="Dietary needs, extra luggage..." className="w-full bg-surface border-b border-border px-4 py-4 text-white focus:border-gold focus:outline-none transition-colors h-24 resize-none" />
+              </div>
+              <button
+                onClick={() => setStep(2)}
+                className="w-full bg-gold text-ink py-5 ui-label tracking-[0.2em] mt-8"
+              >
+                CONTINUE TO PAYMENT
+              </button>
+            </motion.div>
+          )}
+
+          {step === 2 && (
+            <motion.div
+              key="step2"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="space-y-8"
+            >
+              <div className="flex gap-4">
+                <button
+                  onClick={() => setPaymentMethod('ONLINE')}
+                  className={`flex-1 p-6 border transition-all flex flex-col items-center gap-4 ${paymentMethod === 'ONLINE' ? 'bg-surface border-gold' : 'bg-ink border-border text-muted'}`}
+                >
+                  <CreditCard size={32} className={paymentMethod === 'ONLINE' ? 'text-gold' : 'text-muted'} />
+                  <span className="ui-label">PAY ONLINE</span>
+                </button>
+                <button
+                  onClick={() => setPaymentMethod('ARRIVAL')}
+                  className={`flex-1 p-6 border transition-all flex flex-col items-center gap-4 ${paymentMethod === 'ARRIVAL' ? 'bg-surface border-gold' : 'bg-ink border-border text-muted'}`}
+                >
+                  <Wallet size={32} className={paymentMethod === 'ARRIVAL' ? 'text-gold' : 'text-muted'} />
+                  <span className="ui-label">PAY ON ARRIVAL</span>
+                </button>
+              </div>
+
+              <div className="bg-deep border border-border p-8 space-y-4">
+                <div className="flex justify-between items-center">
+                  <span className="ui-label text-muted">BASE FARE</span>
+                  <span className="font-ui text-white">₱{route.price}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="ui-label text-muted">SERVICE FEE</span>
+                  <span className="font-ui text-white">₱50</span>
+                </div>
+                <div className="h-[1px] bg-border my-4" />
+                <div className="flex justify-between items-end">
+                  <span className="ui-label text-gold">TOTAL AMOUNT</span>
+                  <span className="font-display text-4xl text-gold">₱{route.price + 50}</span>
+                </div>
+              </div>
+
+              <div className="flex gap-4">
+                <button
+                  onClick={() => setStep(1)}
+                  className="flex-1 border border-border text-white py-5 ui-label tracking-[0.2em]"
+                >
+                  BACK
+                </button>
+                <button
+                  onClick={handleComplete}
+                  disabled={loading}
+                  className="flex-[2] bg-gold text-ink py-5 ui-label tracking-[0.2em] flex items-center justify-center gap-2"
+                >
+                  {loading ? (
+                    <div className="w-5 h-5 border-2 border-ink border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <>COMPLETE BOOKING <ArrowRight size={16} /></>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      <div className="fixed bottom-0 left-0 w-full bg-deep border-t border-border p-6 flex justify-between items-center">
+        <div className="flex flex-col">
+          <span className="ui-label text-muted">TOTAL</span>
+          <span className="font-ui text-gold text-xl">₱{route.price + 50}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Clock size={16} className="text-muted" />
+          <span className="ui-label text-muted">EXPIRES IN 14:59</span>
+        </div>
+      </div>
+    </motion.div>
+  );
+};

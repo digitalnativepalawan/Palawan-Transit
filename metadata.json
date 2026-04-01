@@ -1,0 +1,7 @@
+{
+  "name": "PALAWAN.TRANSIT",
+  "description": "Premium tourist transport booking for Palawan, Philippines. Shuttles, Bangkas, and Island Hops.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
