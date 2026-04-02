@@ -157,7 +157,13 @@ export default function App() {
   };
 
   const handleBookingComplete = async (ref: string, phone: string) => {
-    if (!selectedRoute || !searchParams) return;
+    if (!selectedRoute || !searchParams) {
+      console.error('Missing route or search params');
+      return;
+    }
+
+    // Generate a simple name from phone number
+    const customerName = `Guest ${phone.slice(-4)}`;
 
     const newBooking = {
       route_id: selectedRoute.id,
@@ -167,10 +173,12 @@ export default function App() {
       date: searchParams.date,
       seats: searchParams.seats,
       total_price: selectedRoute.price * searchParams.seats,
-      customer_name: 'Guest User',
-      customer_email: 'guest@example.com',
+      customer_name: customerName,
+      customer_email: `${customerName.replace(' ', '').toLowerCase()}@guest.com`,
       customer_phone: phone,
     };
+
+    console.log('Creating booking:', newBooking);
 
     const { data, error } = await supabase
       .from('bookings')
@@ -178,14 +186,18 @@ export default function App() {
       .select()
       .single();
 
-    if (!error && data) {
+    if (error) {
+      console.error('Booking error details:', error);
+      alert(`Booking failed: ${error.message}`);
+      return;
+    }
+
+    if (data) {
       setBookings(prev => [data as Booking, ...prev]);
       setBookingRef(ref);
       setSelectedRoute(null);
       setPage('CONFIRMATION');
       window.scrollTo(0, 0);
-    } else {
-      console.error('Booking failed:', error);
     }
   };
 
