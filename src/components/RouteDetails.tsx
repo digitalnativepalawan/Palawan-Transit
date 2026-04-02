@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { motion } from 'motion/react';
-import { ArrowLeft, Clock, MapPin, ShieldCheck, Info, Users, Anchor, Truck, Waves, Star } from 'lucide-react';
+import { ArrowLeft, Clock, MapPin, ShieldCheck, Info, Users, Anchor, Truck, Waves, Star, User } from 'lucide-react';
 import { Route, TransportMode } from '../types';
 import { DiamondDivider } from './UI';
 
@@ -173,11 +173,12 @@ export const RouteDetailsView = ({ route, onBack, onBook, onViewOperator }: Rout
             </p>
           </div>
 
+          {/* Operator Info Card - Updated with View Profile button */}
           <div className="bg-surface border border-border p-6">
             <h3 className="ui-label text-gold mb-4 text-[10px]">OPERATOR INFO</h3>
             <button 
               onClick={() => route.operatorId && onViewOperator(route.operatorId)}
-              className="text-white text-sm mb-2 hover:text-gold transition-colors block text-left"
+              className="text-white text-sm mb-2 hover:text-gold transition-colors block text-left font-semibold"
             >
               {route.operator}
             </button>
@@ -185,9 +186,16 @@ export const RouteDetailsView = ({ route, onBack, onBook, onViewOperator }: Rout
               {[1, 2, 3, 4, 5].map(s => <Star key={s} size={10} fill="currentColor" />)}
               <span className="text-[10px] text-muted ml-2">4.9/5 RATING</span>
             </div>
-            <p className="text-muted text-[10px] leading-relaxed italic">
+            <p className="text-muted text-[10px] leading-relaxed italic mb-4">
               "A trusted local partner verified by Palawan Transit for safety and service excellence."
             </p>
+            <button
+              onClick={() => route.operatorId && onViewOperator(route.operatorId)}
+              className="w-full flex items-center justify-center gap-2 border border-gold/50 text-gold py-2 text-xs hover:bg-gold hover:text-ink transition-colors"
+            >
+              <User size={12} />
+              VIEW OPERATOR PROFILE
+            </button>
           </div>
         </div>
       </div>
