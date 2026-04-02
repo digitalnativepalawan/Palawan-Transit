@@ -11,12 +11,12 @@ const OperatorProfileSettings = ({ operator, onUpdate }: { operator: Operator, o
     const fileName = `${operator.id}-${Date.now()}.${fileExt}`;
     const filePath = `vehicle-photos/${fileName}`;
 
-    const { error: uploadError, data } = await supabase.storage
+    const { error, data } = await supabase.storage
       .from('vehicle-photos')
       .upload(filePath, file);
 
-    if (uploadError) {
-      console.error('Upload error:', uploadError);
+    if (error) {
+      console.error('Upload error:', error);
       return null;
     }
 
@@ -225,7 +225,7 @@ const OperatorProfileSettings = ({ operator, onUpdate }: { operator: Operator, o
         <div>
           <p className="ui-label text-[10px] text-white mb-2">VERIFIED OPERATOR STATUS</p>
           <p className="text-[11px] text-muted leading-relaxed">
-            Your profile information is visible to travelers when they view your routes. 
+            Your profile information is visible to travelers when they view their routes. 
             Vehicle photos help build trust and increase bookings.
           </p>
         </div>
