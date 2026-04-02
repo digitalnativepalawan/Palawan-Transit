@@ -51,10 +51,34 @@ export default function App() {
       // Fetch routes with operator data
       const { data: routesData, error: routesError } = await supabase
         .from('routes')
-        .select('*, operators(*)');
+        .select(`
+          *,
+          operator:operators!routes_operator_id_fkey(id, name, phone, whatsapp, rating)
+        `);
       
       if (!routesError && routesData) {
-        setRoutes(routesData as Route[]);
+        // Map database fields to what the frontend expects
+        const mappedRoutes = routesData.map((route: any) => ({
+          ...route,
+          id: route.id,
+          from: route.from_location,
+          to: route.to_location,
+          from_location: route.from_location,
+          to_location: route.to_location,
+          operator: route.operator?.name || 'Unknown Operator',
+          operatorId: route.operator_id,
+          seatsLeft: route.seats_left,
+          departureTime: route.departure_time,
+          pickupPoint: route.pickup_point,
+          dropoffPoint: route.dropoff_point,
+          bookingType: route.booking_type,
+          mode: route.mode,
+          price: route.price,
+          duration: route.duration,
+          amenities: route.amenities || [],
+          description: route.description || `Travel from ${route.from_location} to ${route.to_location} with ${route.operator?.name || 'our trusted operator'}.`
+        }));
+        setRoutes(mappedRoutes);
       }
       
       // Fetch bookings
@@ -187,19 +211,60 @@ export default function App() {
   const handleAddRoute = async (route: any) => {
     const { data, error } = await supabase
       .from('routes')
-      .insert([route])
+      .insert([{
+        from_location: route.from,
+        to_location: route.to,
+        operator_id: route.operatorId,
+        mode: route.mode,
+        price: route.price,
+        duration: route.duration,
+        seats_left: route.seatsLeft,
+        departure_time: route.departureTime,
+        pickup_point: route.pickupPoint,
+        dropoff_point: route.dropoffPoint,
+        booking_type: route.bookingType,
+        amenities: route.amenities
+      }])
       .select()
       .single();
     
     if (!error && data) {
-      setRoutes(prev => [...prev, data as Route]);
+      const newRoute = {
+        ...data,
+        from: data.from_location,
+        to: data.to_location,
+        operator: route.operator,
+        operatorId: data.operator_id,
+        seatsLeft: data.seats_left,
+        departureTime: data.departure_time,
+        pickupPoint: data.pickup_point,
+        dropoffPoint: data.dropoff_point,
+        bookingType: data.booking_type,
+        mode: data.mode,
+        price: data.price,
+        duration: data.duration,
+        amenities: data.amenities
+      };
+      setRoutes(prev => [...prev, newRoute as Route]);
     }
   };
 
   const handleEditRoute = async (route: any) => {
     const { error } = await supabase
       .from('routes')
-      .update(route)
+      .update({
+        from_location: route.from,
+        to_location: route.to,
+        mode: route.mode,
+        price: route.price,
+        duration: route.duration,
+        seats_left: route.seatsLeft,
+        departure_time: route.departureTime,
+        pickup_point: route.pickupPoint,
+        dropoff_point: route.dropoffPoint,
+        booking_type: route.bookingType,
+        amenities: route.amenities
+      })
       .eq('id', route.id);
     
     if (!error) {
@@ -221,7 +286,18 @@ export default function App() {
   const handleAddOperator = async (op: any) => {
     const { data, error } = await supabase
       .from('operators')
-      .insert([op])
+      .insert([{
+        name: op.name,
+        phone: op.phone,
+        whatsapp: op.whatsapp,
+        email: op.email,
+        type: op.type,
+        location: op.location,
+        rating: op.rating,
+        description: op.description,
+        images: op.images || [],
+        permits: op.permits || []
+      }])
       .select()
       .single();
     
@@ -233,7 +309,18 @@ export default function App() {
   const handleEditOperator = async (op: any) => {
     const { error } = await supabase
       .from('operators')
-      .update(op)
+      .update({
+        name: op.name,
+        phone: op.phone,
+        whatsapp: op.whatsapp,
+        email: op.email,
+        type: op.type,
+        location: op.location,
+        rating: op.rating,
+        description: op.description,
+        images: op.images,
+        permits: op.permits
+      })
       .eq('id', op.id);
     
     if (!error) {
@@ -254,7 +341,7 @@ export default function App() {
 
   const filteredRoutes = routes.filter(r => {
     if (!searchParams) return true;
-    const matchesSearch = r.from_location === searchParams.from && r.to_location === searchParams.to;
+    const matchesSearch = r.from === searchParams.from && r.to === searchParams.to;
     if (!matchesSearch) return false;
 
     if (activeFilter === 'ALL') return true;
