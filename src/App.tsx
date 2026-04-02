@@ -22,6 +22,7 @@ export default function App() {
   const [viewingRoute, setViewingRoute] = React.useState<Route | null>(null);
   const [selectedOperator, setSelectedOperator] = React.useState<Operator | null>(null);
   const [bookingRef, setBookingRef] = React.useState<string | null>(null);
+  const [bookingPin, setBookingPin] = React.useState<string | null>(null);
   const [searchParams, setSearchParams] = React.useState<{ from: string; to: string; date: string; seats: number } | null>(null);
   const [userRole, setUserRole] = React.useState<'USER' | 'ADMIN' | 'OPERATOR'>('USER');
   const [activeFilter, setActiveFilter] = React.useState<'ALL' | 'SHARED' | 'PRIVATE' | '4X4' | 'BOAT'>('ALL');
@@ -33,6 +34,11 @@ export default function App() {
   const [operators, setOperators] = React.useState<Operator[]>([]);
   const [bookings, setBookings] = React.useState<Booking[]>([]);
   const [loading, setLoading] = React.useState(true);
+
+  // Generate random 6-digit PIN
+  const generatePin = () => {
+    return Math.floor(100000 + Math.random() * 900000).toString();
+  };
 
   // Fetch data from Supabase on load
   React.useEffect(() => {
@@ -187,11 +193,15 @@ export default function App() {
 
     // Generate a simple name from phone number
     const customerName = `Guest ${phone.slice(-4)}`;
+    
+    // Generate a 6-digit PIN code
+    const pinCode = generatePin();
 
     const newBooking = {
       route_id: currentRoute.id,
       operator_id: currentRoute.operator_id,
       reference_code: ref,
+      pin_code: pinCode,
       status: currentRoute.booking_type === 'INSTANT' ? 'CONFIRMED' : 'PENDING',
       date: currentParams.date,
       seats: currentParams.seats,
@@ -218,6 +228,7 @@ export default function App() {
     if (data) {
       setBookings(prev => [data as Booking, ...prev]);
       setBookingRef(ref);
+      setBookingPin(pinCode);
       setSelectedRoute(null);
       setPage('CONFIRMATION');
       window.scrollTo(0, 0);
@@ -236,7 +247,7 @@ export default function App() {
       if (status === 'ACCEPTED') {
         const booking = bookings.find(b => b.id === bookingId);
         if (booking) {
-          const message = `Hello ${booking.customer_name}, I am your operator for booking ${booking.reference_code}.`;
+          const message = `Hello ${booking.customer_name}, I am your operator for booking ${booking.reference_code}. PIN: ${booking.pin_code}`;
           window.open(`https://wa.me/${booking.customer_phone}?text=${encodeURIComponent(message)}`, '_blank');
         }
       }
@@ -731,7 +742,7 @@ export default function App() {
                     if (booking) {
                       const op = operators.find(o => o.id === booking.operator_id);
                       if (op && op.whatsapp) {
-                        const message = `Hello, I have a booking with reference ${booking.reference_code}.`;
+                        const message = `New Booking! Reference: ${booking.reference_code} | PIN: ${bookingPin} | From: ${currentRoute?.from} To: ${currentRoute?.to} | Passengers: ${searchParams?.seats || 1}`;
                         window.open(`https://wa.me/${op.whatsapp}?text=${encodeURIComponent(message)}`, '_blank');
                       }
                     }
