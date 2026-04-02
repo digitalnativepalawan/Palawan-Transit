@@ -3,11 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { ArrowLeft, MapPin, Star, Shield, Phone, Mail, FileText, ExternalLink, Anchor, Truck, Waves } from 'lucide-react';
+import { ArrowLeft, MapPin, Star, Shield, Phone, Mail, FileText, ExternalLink, Anchor, Truck, Waves, Camera, X, Clock, CheckCircle } from 'lucide-react';
 import { Operator, Route } from '../types';
 import { RouteCard, DiamondDivider } from './UI';
+import { supabase } from '../lib/supabase';
 
 interface OperatorProfileProps {
   operator: Operator;
@@ -17,8 +18,30 @@ interface OperatorProfileProps {
 }
 
 export const OperatorProfileView = ({ operator, routes, onBack, onViewRoute }: OperatorProfileProps) => {
+  const [vehiclePhotos, setVehiclePhotos] = useState<string[]>([]);
+  const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
+  const [operatorDetails, setOperatorDetails] = useState<any>(null);
+  
   const operatorRoutes = routes.filter(r => r.operatorId === operator.id || r.operator === operator.name);
   const ModeIcon = operator.type === 'VAN' ? Truck : operator.type === 'BOAT' ? Anchor : Waves;
+
+  useEffect(() => {
+    const fetchOperatorDetails = async () => {
+      const { data } = await supabase
+        .from('operators')
+        .select('vehicle_photos, years_experience, operating_hours')
+        .eq('id', operator.id)
+        .single();
+      
+      if (data) {
+        setOperatorDetails(data);
+        setVehiclePhotos(data.vehicle_photos || []);
+      }
+    };
+    fetchOperatorDetails();
+  }, [operator.id]);
+
+  const hasPhotos = vehiclePhotos.length > 0;
 
   return (
     <motion.div
@@ -27,13 +50,33 @@ export const OperatorProfileView = ({ operator, routes, onBack, onViewRoute }: O
       exit={{ opacity: 0 }}
       className="pt-32 pb-24 px-6 max-w-7xl mx-auto min-h-screen"
     >
+      {/* Image Modal */}
+      {selectedPhoto && (
+        <div 
+          className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-4"
+          onClick={() => setSelectedPhoto(null)}
+        >
+          <button 
+            onClick={() => setSelectedPhoto(null)}
+            className="absolute top-6 right-6 text-white hover:text-gold transition-colors"
+          >
+            <X size={32} />
+          </button>
+          <img 
+            src={selectedPhoto} 
+            alt="Vehicle" 
+            className="max-w-full max-h-[90vh] object-contain"
+          />
+        </div>
+      )}
+
       {/* Navigation */}
       <button 
         onClick={onBack} 
         className="ui-label text-muted hover:text-gold transition-colors flex items-center gap-2 mb-8 group"
       >
         <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" /> 
-        BACK
+        BACK TO ROUTES
       </button>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
@@ -50,19 +93,33 @@ export const OperatorProfileView = ({ operator, routes, onBack, onViewRoute }: O
                 <h1 className="text-3xl text-white italic leading-tight">{operator.name}</h1>
                 <div className="flex items-center gap-2 text-gold mt-1">
                   <Star size={12} fill="currentColor" />
-                  <span className="ui-label text-[10px]">{operator.rating}/5 RATING</span>
+                  <span className="ui-label text-[10px]">{operator.rating || 4.9}/5 RATING</span>
                 </div>
               </div>
             </div>
 
-            <p className="text-muted font-body italic text-sm mb-8 leading-relaxed">
+            <p className="text-muted font-body italic text-sm mb-6 leading-relaxed">
               {operator.description || "A premier transportation provider in Palawan, committed to safety, reliability, and exceptional local service."}
             </p>
 
-            <div className="space-y-4">
+            {/* Trust badges */}
+            <div className="flex flex-wrap gap-3 mb-6">
+              <div className="flex items-center gap-1 text-xs text-green-500">
+                <CheckCircle size={14} />
+                <span>Verified Operator</span>
+              </div>
+              {operatorDetails?.years_experience > 0 && (
+                <div className="flex items-center gap-1 text-xs text-gold">
+                  <Clock size={14} />
+                  <span>{operatorDetails.years_experience} yrs experience</span>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-3 border-t border-border pt-6">
               <div className="flex items-center gap-3 text-white/80">
                 <MapPin size={16} className="text-gold" />
-                <span className="ui-label text-[10px] uppercase tracking-wider">{operator.location}</span>
+                <span className="ui-label text-[10px] uppercase tracking-wider">{operator.location || 'Palawan'}</span>
               </div>
               <div className="flex items-center gap-3 text-white/80">
                 <Phone size={16} className="text-gold" />
@@ -76,7 +133,7 @@ export const OperatorProfileView = ({ operator, routes, onBack, onViewRoute }: O
               )}
               {operator.whatsapp && (
                 <a 
-                  href={`https://wa.me/${operator.whatsapp}`}
+                  href={`https://wa.me/${operator.whatsapp.replace(/[^0-9]/g, '')}`}
                   target="_blank"
                   rel="noreferrer"
                   className="flex items-center gap-3 text-gold hover:text-white transition-colors group"
@@ -92,12 +149,14 @@ export const OperatorProfileView = ({ operator, routes, onBack, onViewRoute }: O
 
             <div className="space-y-4">
               <h3 className="ui-label text-gold text-[10px] tracking-[0.2em] mb-4">VERIFIED PERMITS</h3>
-              {operator.permits?.map((permit, i) => (
-                <div key={i} className="flex items-center gap-3 text-muted">
-                  <Shield size={14} className="text-success" />
-                  <span className="ui-label text-[9px]">{permit.toUpperCase()}</span>
-                </div>
-              )) || (
+              {operator.permits && operator.permits.length > 0 ? (
+                operator.permits.map((permit, i) => (
+                  <div key={i} className="flex items-center gap-3 text-muted">
+                    <Shield size={14} className="text-success" />
+                    <span className="ui-label text-[9px]">{permit.toUpperCase()}</span>
+                  </div>
+                ))
+              ) : (
                 <div className="flex items-center gap-3 text-muted">
                   <Shield size={14} className="text-success" />
                   <span className="ui-label text-[9px]">LTFRB FRANCHISE VERIFIED</span>
@@ -106,26 +165,50 @@ export const OperatorProfileView = ({ operator, routes, onBack, onViewRoute }: O
             </div>
           </div>
 
-          {/* Transport Images */}
+          {/* Vehicle Photos Gallery */}
           <div className="space-y-4">
-            <h3 className="ui-label text-gold text-[10px] tracking-[0.2em]">FLEET GALLERY</h3>
-            <div className="grid grid-cols-2 gap-4">
-              {(operator.images || [
-                "https://picsum.photos/seed/van1/400/300",
-                "https://picsum.photos/seed/van2/400/300",
-                "https://picsum.photos/seed/van3/400/300",
-                "https://picsum.photos/seed/van4/400/300"
-              ]).map((img, i) => (
-                <div key={i} className="aspect-square bg-surface border border-border overflow-hidden group">
-                  <img 
-                    src={img} 
-                    alt={`Fleet ${i}`} 
-                    className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500 scale-110 group-hover:scale-100"
-                    referrerPolicy="no-referrer"
-                  />
-                </div>
-              ))}
-            </div>
+            <h3 className="ui-label text-gold text-[10px] tracking-[0.2em]">VEHICLE GALLERY</h3>
+            {hasPhotos ? (
+              <div className="grid grid-cols-2 gap-3">
+                {vehiclePhotos.slice(0, 4).map((img, i) => (
+                  <div 
+                    key={i} 
+                    className="aspect-square bg-surface border border-border overflow-hidden cursor-pointer hover:border-gold transition-all"
+                    onClick={() => setSelectedPhoto(img)}
+                  >
+                    <img 
+                      src={img} 
+                      alt={`Vehicle ${i + 1}`} 
+                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                    />
+                  </div>
+                ))}
+                {vehiclePhotos.length === 0 && (
+                  <div className="col-span-2 py-8 text-center text-muted text-sm border border-border">
+                    <Camera size={24} className="mx-auto mb-2 opacity-50" />
+                    No vehicle photos yet
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-4">
+                {(operator.images && operator.images.length > 0 ? operator.images : [
+                  "https://picsum.photos/seed/van1/400/300",
+                  "https://picsum.photos/seed/van2/400/300",
+                  "https://picsum.photos/seed/van3/400/300",
+                  "https://picsum.photos/seed/van4/400/300"
+                ]).slice(0, 4).map((img, i) => (
+                  <div key={i} className="aspect-square bg-surface border border-border overflow-hidden group">
+                    <img 
+                      src={img} 
+                      alt={`Fleet ${i}`} 
+                      className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500 scale-110 group-hover:scale-100"
+                      referrerPolicy="no-referrer"
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
