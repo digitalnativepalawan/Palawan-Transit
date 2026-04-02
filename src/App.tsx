@@ -157,8 +157,19 @@ export default function App() {
   };
 
   const handleBookingComplete = async (ref: string, phone: string) => {
-    if (!selectedRoute || !searchParams) {
-      console.error('Missing route or search params');
+    // Get the current selected route and search params from state
+    const currentRoute = selectedRoute;
+    const currentParams = searchParams;
+    
+    if (!currentRoute) {
+      console.error('No route selected');
+      alert('Booking error: No route selected. Please go back and try again.');
+      return;
+    }
+    
+    if (!currentParams) {
+      console.error('No search params');
+      alert('Booking error: Missing search information. Please go back and try again.');
       return;
     }
 
@@ -166,19 +177,17 @@ export default function App() {
     const customerName = `Guest ${phone.slice(-4)}`;
 
     const newBooking = {
-      route_id: selectedRoute.id,
-      operator_id: selectedRoute.operator_id,
+      route_id: currentRoute.id,
+      operator_id: currentRoute.operator_id,
       reference_code: ref,
-      status: selectedRoute.booking_type === 'INSTANT' ? 'CONFIRMED' : 'PENDING',
-      date: searchParams.date,
-      seats: searchParams.seats,
-      total_price: selectedRoute.price * searchParams.seats,
+      status: currentRoute.booking_type === 'INSTANT' ? 'CONFIRMED' : 'PENDING',
+      date: currentParams.date,
+      seats: currentParams.seats,
+      total_price: currentRoute.price * currentParams.seats,
       customer_name: customerName,
       customer_email: `${customerName.replace(' ', '').toLowerCase()}@guest.com`,
       customer_phone: phone,
     };
-
-    console.log('Creating booking:', newBooking);
 
     const { data, error } = await supabase
       .from('bookings')
@@ -187,7 +196,7 @@ export default function App() {
       .single();
 
     if (error) {
-      console.error('Booking error details:', error);
+      console.error('Booking error:', error);
       alert(`Booking failed: ${error.message}`);
       return;
     }
