@@ -153,13 +153,22 @@ export default function App() {
   };
 
   const handleBook = (route: Route) => {
+    // If searchParams is missing but we have a viewingRoute, create default searchParams
+    if (!searchParams && viewingRoute) {
+      const today = new Date().toISOString().split('T')[0];
+      setSearchParams({
+        from: viewingRoute.from,
+        to: viewingRoute.to,
+        date: today,
+        seats: 1
+      });
+    }
     setSelectedRoute(route);
   };
 
   const handleBookingComplete = async (ref: string, phone: string) => {
-    // Get the current selected route and search params from state
+    // Get the current selected route
     const currentRoute = selectedRoute;
-    const currentParams = searchParams;
     
     if (!currentRoute) {
       console.error('No route selected');
@@ -167,11 +176,14 @@ export default function App() {
       return;
     }
     
-    if (!currentParams) {
-      console.error('No search params');
-      alert('Booking error: Missing search information. Please go back and try again.');
-      return;
-    }
+    // Use searchParams if available, otherwise create defaults from the route
+    const today = new Date().toISOString().split('T')[0];
+    const currentParams = searchParams || {
+      from: currentRoute.from,
+      to: currentRoute.to,
+      date: today,
+      seats: 1
+    };
 
     // Generate a simple name from phone number
     const customerName = `Guest ${phone.slice(-4)}`;
@@ -188,6 +200,8 @@ export default function App() {
       customer_email: `${customerName.replace(' ', '').toLowerCase()}@guest.com`,
       customer_phone: phone,
     };
+
+    console.log('Creating booking:', newBooking);
 
     const { data, error } = await supabase
       .from('bookings')
