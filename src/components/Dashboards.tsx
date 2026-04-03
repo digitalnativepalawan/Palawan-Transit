@@ -59,7 +59,6 @@ export const AdminDashboard = ({
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
   const [tourTypeFilter, setTourTypeFilter] = React.useState<'ALL' | 'LAND' | 'ISLAND'>('ALL');
   
-  // Modal States
   const [showRouteModal, setShowRouteModal] = React.useState(false);
   const [showOperatorModal, setShowOperatorModal] = React.useState(false);
   const [showBookingModal, setShowBookingModal] = React.useState(false);
@@ -290,7 +289,7 @@ export const AdminDashboard = ({
   );
 };
 
-// --- Modals (kept as is for brevity, but they remain unchanged) ---
+// --- Modals ---
 const RouteModal = ({ route, operators, onClose, onSave }: { route: Route | null, operators: Operator[], onClose: () => void, onSave: (data: any) => void }) => {
   const [formData, setFormData] = React.useState(route || {
     from: '', to: '', mode: 'SHUTTLE', price: 0, departureTime: '', duration: '', seatsLeft: 12, operator: operators[0]?.name || '', bookingType: 'INSTANT'
@@ -353,6 +352,7 @@ const ManualBookingModal = ({ routes, onClose, onSave }: { routes: Route[], onCl
   );
 };
 
+// --- Dashboard Views ---
 const DashboardView = ({ bookings, routes, onUpdateStatus, isOperatorPortal }: any) => {
   const [verifyCode, setVerifyCode] = React.useState('');
   const [verifyError, setVerifyError] = React.useState('');
@@ -411,62 +411,28 @@ const RoutesView = ({ routes, onAdd, onEdit, onDelete, tourTypeFilter, setTourTy
     <div className="space-y-6 lg:space-y-8">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex gap-2">
-          <button
-            onClick={() => setTourTypeFilter('ALL')}
-            className={`px-4 py-2 ui-label text-[10px] tracking-[0.2em] transition-colors ${tourTypeFilter === 'ALL' ? 'bg-gold text-ink' : 'bg-surface border border-white/10 text-muted hover:text-white'}`}
-          >
-            ALL ROUTES
-          </button>
-          <button
-            onClick={() => setTourTypeFilter('LAND')}
-            className={`px-4 py-2 ui-label text-[10px] tracking-[0.2em] transition-colors ${tourTypeFilter === 'LAND' ? 'bg-gold text-ink' : 'bg-surface border border-white/10 text-muted hover:text-white'}`}
-          >
-            🚐 LAND TRANSPORT
-          </button>
-          <button
-            onClick={() => setTourTypeFilter('ISLAND')}
-            className={`px-4 py-2 ui-label text-[10px] tracking-[0.2em] transition-colors ${tourTypeFilter === 'ISLAND' ? 'bg-gold text-ink' : 'bg-surface border border-white/10 text-muted hover:text-white'}`}
-          >
-            ⛵ ISLAND HOPPING
-          </button>
+          <button onClick={() => setTourTypeFilter('ALL')} className={`px-4 py-2 ui-label text-[10px] tracking-[0.2em] transition-colors ${tourTypeFilter === 'ALL' ? 'bg-gold text-ink' : 'bg-surface border border-white/10 text-muted hover:text-white'}`}>ALL ROUTES</button>
+          <button onClick={() => setTourTypeFilter('LAND')} className={`px-4 py-2 ui-label text-[10px] tracking-[0.2em] transition-colors ${tourTypeFilter === 'LAND' ? 'bg-gold text-ink' : 'bg-surface border border-white/10 text-muted hover:text-white'}`}>🚐 LAND TRANSPORT</button>
+          <button onClick={() => setTourTypeFilter('ISLAND')} className={`px-4 py-2 ui-label text-[10px] tracking-[0.2em] transition-colors ${tourTypeFilter === 'ISLAND' ? 'bg-gold text-ink' : 'bg-surface border border-white/10 text-muted hover:text-white'}`}>⛵ ISLAND HOPPING</button>
         </div>
-        <button 
-          onClick={onAdd}
-          className="w-full sm:w-auto bg-gold text-ink px-8 py-3 ui-label text-[11px] font-bold tracking-[0.2em] flex items-center justify-center gap-2"
-        >
-          <Plus size={16} /> CREATE NEW ROUTE
-        </button>
+        <button onClick={onAdd} className="w-full sm:w-auto bg-gold text-ink px-8 py-3 ui-label text-[11px] font-bold tracking-[0.2em] flex items-center justify-center gap-2"><Plus size={16} /> CREATE NEW ROUTE</button>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
         {filteredByType.map((r: any) => (
           <div key={r.id} className="bg-[#081221] border border-white/10 p-6 lg:p-8 flex justify-between items-start group hover:border-gold/50 transition-all">
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-4">
-                {r.mode === 'ISLAND_HOPPING' ? <Anchor size={16} className="text-seafoam" /> : 
-                 r.mode.startsWith('SHUTTLE') ? <Truck size={16} className="text-gold" /> : 
-                 r.mode === 'PRIVATE_4X4' ? <Truck size={16} className="text-danger" /> :
-                 r.mode === 'BANGKA' ? <Anchor size={16} className="text-seafoam" /> : 
-                 <Waves size={16} className="text-gold" />}
+                {r.mode === 'ISLAND_HOPPING' ? <Anchor size={16} className="text-seafoam" /> : r.mode.startsWith('SHUTTLE') ? <Truck size={16} className="text-gold" /> : r.mode === 'PRIVATE_4X4' ? <Truck size={16} className="text-danger" /> : r.mode === 'BANGKA' ? <Anchor size={16} className="text-seafoam" /> : <Waves size={16} className="text-gold" />}
                 <span className="ui-label text-[9px] text-muted tracking-[0.2em]">{r.mode}</span>
-                {r.mode === 'ISLAND_HOPPING' && (
-                  <span className="ui-label text-[8px] px-2 py-0.5 bg-seafoam/20 text-seafoam tracking-[0.1em] rounded">ISLAND HOPPING</span>
-                )}
-                {r.mode !== 'ISLAND_HOPPING' && (
-                  <span className="w-1 h-1 rounded-full bg-success" />
-                )}
+                {r.mode === 'ISLAND_HOPPING' && <span className="ui-label text-[8px] px-2 py-0.5 bg-seafoam/20 text-seafoam tracking-[0.1em] rounded">ISLAND HOPPING</span>}
+                {r.mode !== 'ISLAND_HOPPING' && <span className="w-1 h-1 rounded-full bg-success" />}
                 <span className="ui-label text-[9px] text-success tracking-[0.2em]">LIVE</span>
               </div>
               <h4 className="text-2xl lg:text-3xl text-white italic mb-2">{r.from} → {r.to}</h4>
               <p className="ui-label text-[10px] text-muted tracking-widest mb-6">{r.operator} · {r.duration} · {r.departureTime}</p>
-              <div className="flex gap-4">
-                <button onClick={() => onEdit(r)} className="ui-label text-[9px] text-gold hover:underline">EDIT DETAILS</button>
-                <button onClick={() => onDelete(r.id)} className="ui-label text-[9px] text-danger hover:underline">DELETE</button>
-              </div>
+              <div className="flex gap-4"><button onClick={() => onEdit(r)} className="ui-label text-[9px] text-gold hover:underline">EDIT DETAILS</button><button onClick={() => onDelete(r.id)} className="ui-label text-[9px] text-danger hover:underline">DELETE</button></div>
             </div>
-            <div className="text-right ml-4">
-              <p className="text-2xl lg:text-3xl text-white font-ui mb-1">₱{r.price}</p>
-              <p className="ui-label text-[8px] text-muted">{r.bookingType} BOOKING</p>
-            </div>
+            <div className="text-right ml-4"><p className="text-2xl lg:text-3xl text-white font-ui mb-1">₱{r.price}</p><p className="ui-label text-[8px] text-muted">{r.bookingType} BOOKING</p></div>
           </div>
         ))}
       </div>
@@ -475,9 +441,14 @@ const RoutesView = ({ routes, onAdd, onEdit, onDelete, tourTypeFilter, setTourTy
 };
 
 const OperatorsView = ({ operators, onAdd, onEdit, onDelete }: any) => (
-  <div className="space-y-6 lg:space-y-8"><div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"><h3 className="ui-label text-[10px] text-gold tracking-[0.2em]">{operators.length} REGISTERED OPERATORS</h3><button onClick={onAdd} className="w-full sm:w-auto bg-gold text-ink px-8 py-3 ui-label text-[11px] font-bold tracking-[0.2em] flex items-center justify-center gap-2"><Plus size={16} /> ONBOARD OPERATOR</button></div>
+  <div className="space-y-6 lg:space-y-8">
+    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <h3 className="ui-label text-[10px] text-gold tracking-[0.2em]">{operators.length} REGISTERED OPERATORS</h3>
+      <button onClick={onAdd} className="w-full sm:w-auto bg-gold text-ink px-8 py-3 ui-label text-[11px] font-bold tracking-[0.2em] flex items-center justify-center gap-2"><Plus size={16} /> ONBOARD OPERATOR</button>
+    </div>
     <div className="lg:hidden space-y-4">{operators.map((op: any) => (<div key={op.id} className="bg-[#081221] border border-white/10 p-6 space-y-4"><div className="flex justify-between items-start"><div><p className="text-white text-lg italic">{op.name}</p><p className="ui-label text-[8px] text-muted">{op.phone}</p></div><span className="ui-label text-[8px] px-2 py-1 bg-success/20 text-success">APPROVED</span></div><div className="grid grid-cols-2 gap-4 pt-4 border-t border-white/5"><div><p className="ui-label text-[8px] text-muted mb-1">TYPE</p><p className="text-white text-xs">{op.type}</p></div><div><p className="ui-label text-[8px] text-muted mb-1">LOCATION</p><p className="text-white text-xs">{op.location}</p></div><div><p className="ui-label text-[8px] text-muted mb-1">RATING</p><div className="flex items-center gap-1 text-gold"><Check size={10} /><span className="ui-label text-[10px]">4.9</span></div></div><div className="flex justify-end items-end gap-2"><button onClick={() => onEdit(op)} className="p-2 text-muted hover:text-gold"><SettingsIcon size={16} /></button><button onClick={() => onDelete(op.id)} className="p-2 text-muted hover:text-danger"><Trash2 size={16} /></button></div></div></div>))}</div>
-    <div className="hidden lg:block bg-[#081221] border border-white/10 overflow-hidden"><table className="w-full text-left"><thead><tr className="border-b border-white/10 bg-white/5"><th className="px-6 py-4 ui-label text-[9px] text-muted tracking-[0.2em]">OPERATOR</th><th className="px-6 py-4 ui-label text-[9px] text-muted tracking-[0.2em]">TYPE</th><th className="px-6 py-4 ui-label text-[9px] text-muted tracking-[0.2em]">LOCATION</th><th className="px-6 py-4 ui-label text-[9px] text-muted tracking-[0.2em]">ROUTES</th><th className="px-6 py-4 ui-label text-[9px] text-muted tracking-[0.2em]">RATING</th><th className="px-6 py-4 ui-label text-[9px] text-muted tracking-[0.2em]">STATUS</th><th className="px-6 py-4"></th></tr></thead><tbody className="divide-y divide-white/5">{operators.map((op: any) => (<tr key={op.id} className="hover:bg-white/5 transition-all group"><td className="px-6 py-6"><p className="text-lg text-white italic">{op.name}</p><p className="ui-label text-[8px] text-muted">{op.phone}</p></td><td className="px-6 py-6 ui-label text-[10px] text-white">{op.type}</td><td className="px-6 py-6 ui-label text-[10px] text-muted">{op.location}</td><td className="px-6 py-6 ui-label text-[10px] text-white">12</td><td className="px-6 py-6"><div className="flex items-center gap-1 text-gold"><Check size={12} /><span className="ui-label text-[10px]">4.9</span></div></td><td className="px-6 py-6"><span className="ui-label text-[8px] px-2 py-1 bg-success/20 text-success">APPROVED</span></td><td className="px-6 py-6 text-right"><div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all"><button onClick={() => onEdit(op)} className="p-2 text-muted hover:text-gold transition-colors"><SettingsIcon size={16} /></button><button onClick={() => onDelete(op.id)} className="p-2 text-muted hover:text-danger transition-colors"><Trash2 size={16} /></button></div></td></tr>))}</tbody></table></div></div>
+    <div className="hidden lg:block bg-[#081221] border border-white/10 overflow-hidden"><table className="w-full text-left"><thead><tr className="border-b border-white/10 bg-white/5"><th className="px-6 py-4 ui-label text-[9px] text-muted tracking-[0.2em]">OPERATOR</th><th className="px-6 py-4 ui-label text-[9px] text-muted tracking-[0.2em]">TYPE</th><th className="px-6 py-4 ui-label text-[9px] text-muted tracking-[0.2em]">LOCATION</th><th className="px-6 py-4 ui-label text-[9px] text-muted tracking-[0.2em]">ROUTES</th><th className="px-6 py-4 ui-label text-[9px] text-muted tracking-[0.2em]">RATING</th><th className="px-6 py-4 ui-label text-[9px] text-muted tracking-[0.2em]">STATUS</th><th className="px-6 py-4"></th></tr></thead><tbody className="divide-y divide-white/5">{operators.map((op: any) => (<tr key={op.id} className="hover:bg-white/5 transition-all group"><td className="px-6 py-6"><p className="text-lg text-white italic">{op.name}</p><p className="ui-label text-[8px] text-muted">{op.phone}</p></td><td className="px-6 py-6 ui-label text-[10px] text-white">{op.type}</td><td className="px-6 py-6 ui-label text-[10px] text-muted">{op.location}</td><td className="px-6 py-6 ui-label text-[10px] text-white">12</td><td className="px-6 py-6"><div className="flex items-center gap-1 text-gold"><Check size={12} /><span className="ui-label text-[10px]">4.9</span></div></td><td className="px-6 py-6"><span className="ui-label text-[8px] px-2 py-1 bg-success/20 text-success">APPROVED</span></td><td className="px-6 py-6 text-right"><div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all"><button onClick={() => onEdit(op)} className="p-2 text-muted hover:text-gold transition-colors"><SettingsIcon size={16} /></button><button onClick={() => onDelete(op.id)} className="p-2 text-muted hover:text-danger transition-colors"><Trash2 size={16} /></button></div></td></tr>))}</tbody></table></div>
+  </div>
 );
 
 const PaymentsView = () => (
@@ -490,8 +461,26 @@ const ReportsView = () => {
 };
 
 const PassengersView = () => {
-  const passengers = [{ name: 'Maria Santos', phone: '+63 912 345 6789', bookings: 4, spend: '₱9,600', last: 'Mar 28, 2026' }, { name: 'James Kowalski', phone: '+48 600 123 456', bookings: 1, spend: '₱4,800', last: 'Apr 01, 2026' }, { name: 'Sophie Laurent', phone: '+33 6 12 34 56 78', bookings: 2, spend: '₱2,400', last: 'Mar 15, 2026' }, { name: 'Erik Magnusson', phone: '+46 70 123 45 67', bookings: 3, spend: '₱7,200', last: 'Mar 22, 2026' }];
-  return (<div className="space-y-6 lg:space-y-8"><div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"><div className="relative w-full sm:w-96"><Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted" size={16} /><input placeholder="Search passenger database..." className="bg-[#081221] border border-white/10 pl-12 pr-6 py-3 ui-label text-[11px] text-white w-full focus:border-gold outline-none" /></div><button className="w-full sm:w-auto ui-label text-[10px] text-muted hover:text-white flex items-center justify-center gap-2 px-6 py-3 border border-white/10 sm:border-0"><Download size={14} /> EXPORT DATABASE</button></div><div className="lg:hidden space-y-4">{passengers.map((p, i) => (<div key={i} className="bg-[#081221] border border-white/10 p-6 space-y-4"><div className="flex justify-between items-start"><div><p className="text-white text-lg italic">{p.name}</p><p className="ui-label text-[8px] text-muted">{p.phone}</p></div><button className="p-2 text-muted hover:text-white"><MoreVertical size={16} /></button></div><div className="grid grid-cols-2 gap-4 pt-4 border-t border-white/5"><div><p className="ui-label text-[8px] text-muted mb-1">BOOKINGS</p><p className="text-white text-xs">{p.bookings}</p></div><div><p className="ui-label text-[8px] text-muted mb-1">TOTAL SPEND</p><p className="text-gold font-ui">{p.spend}</p></div><div><p className="ui-label text-[8px] text-muted mb-1">LAST TRIP</p><p className="text-white text-xs">{p.last}</p></div></div></div>))}</div><div className="hidden lg:block bg-[#081221] border border-white/10 overflow-hidden"><table className="w-full text-left"><thead><tr className="border-b border-white/10 bg-white/5"><th className="px-6 py-4 ui-label text-[9px] text-muted tracking-[0.2em]">PASSENGER</th><th className="px-6 py-4 ui-label text-[9px] text-muted tracking-[0.2em]">CONTACT</th><th className="px-6 py-4 ui-label text-[9px] text-muted tracking-[0.2em]">BOOKINGS</th><th className="px-6 py-4 ui-label text-[9px] text-muted tracking-[0.2em]">TOTAL SPEND</th><th className="px-6 py-4 ui-label text-[9px] text-muted tracking-[0.2em]">LAST TRIP</th><th className="px-6 py-4"></th></tr></thead><tbody className="divide-y divide-white/5">{passengers.map((p, i) => (<tr key={i} className="hover:bg-white/5 transition-all group"><td className="px-6 py-6 text-white text-sm italic">{p.name}</td><td className="px-6 py-6 ui-label text-[10px] text-muted">{p.phone}</td><td className="px-6 py-6 ui-label text-[10px] text-white">{p.bookings}</td><td className="px-6 py-6 font-ui text-gold">{p.spend}</td><td className="px-6 py-6 ui-label text-[10px] text-muted">{p.last}</td><td className="px-6 py-6 text-right"><button className="p-2 text-muted hover:text-white opacity-0 group-hover:opacity-100 transition-all"><MoreVertical size={16} /></button></td></tr>))}</tbody></tr></div></div>);
+  const passengers = [
+    { name: 'Maria Santos', phone: '+63 912 345 6789', bookings: 4, spend: '₱9,600', last: 'Mar 28, 2026' },
+    { name: 'James Kowalski', phone: '+48 600 123 456', bookings: 1, spend: '₱4,800', last: 'Apr 01, 2026' },
+    { name: 'Sophie Laurent', phone: '+33 6 12 34 56 78', bookings: 2, spend: '₱2,400', last: 'Mar 15, 2026' },
+    { name: 'Erik Magnusson', phone: '+46 70 123 45 67', bookings: 3, spend: '₱7,200', last: 'Mar 22, 2026' },
+  ];
+
+  return (
+    <div className="space-y-6 lg:space-y-8">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="relative w-full sm:w-96">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted" size={16} />
+          <input placeholder="Search passenger database..." className="bg-[#081221] border border-white/10 pl-12 pr-6 py-3 ui-label text-[11px] text-white w-full focus:border-gold outline-none" />
+        </div>
+        <button className="w-full sm:w-auto ui-label text-[10px] text-muted hover:text-white flex items-center justify-center gap-2 px-6 py-3 border border-white/10 sm:border-0"><Download size={14} /> EXPORT DATABASE</button>
+      </div>
+      <div className="lg:hidden space-y-4">{passengers.map((p, i) => (<div key={i} className="bg-[#081221] border border-white/10 p-6 space-y-4"><div className="flex justify-between items-start"><div><p className="text-white text-lg italic">{p.name}</p><p className="ui-label text-[8px] text-muted">{p.phone}</p></div><button className="p-2 text-muted hover:text-white"><MoreVertical size={16} /></button></div><div className="grid grid-cols-2 gap-4 pt-4 border-t border-white/5"><div><p className="ui-label text-[8px] text-muted mb-1">BOOKINGS</p><p className="text-white text-xs">{p.bookings}</p></div><div><p className="ui-label text-[8px] text-muted mb-1">TOTAL SPEND</p><p className="text-gold font-ui">{p.spend}</p></div><div><p className="ui-label text-[8px] text-muted mb-1">LAST TRIP</p><p className="text-white text-xs">{p.last}</p></div></div></div>))}</div>
+      <div className="hidden lg:block bg-[#081221] border border-white/10 overflow-hidden"><table className="w-full text-left"><thead><tr className="border-b border-white/10 bg-white/5"><th className="px-6 py-4 ui-label text-[9px] text-muted tracking-[0.2em]">PASSENGER</th><th className="px-6 py-4 ui-label text-[9px] text-muted tracking-[0.2em]">CONTACT</th><th className="px-6 py-4 ui-label text-[9px] text-muted tracking-[0.2em]">BOOKINGS</th><th className="px-6 py-4 ui-label text-[9px] text-muted tracking-[0.2em]">TOTAL SPEND</th><th className="px-6 py-4 ui-label text-[9px] text-muted tracking-[0.2em]">LAST TRIP</th><th className="px-6 py-4"></th></tr></thead><tbody className="divide-y divide-white/5">{passengers.map((p, i) => (<tr key={i} className="hover:bg-white/5 transition-all group"><td className="px-6 py-6 text-white text-sm italic">{p.name}</td><td className="px-6 py-6 ui-label text-[10px] text-muted">{p.phone}</td><td className="px-6 py-6 ui-label text-[10px] text-white">{p.bookings}</td><td className="px-6 py-6 font-ui text-gold">{p.spend}</td><td className="px-6 py-6 ui-label text-[10px] text-muted">{p.last}</td><td className="px-6 py-6 text-right"><button className="p-2 text-muted hover:text-white opacity-0 group-hover:opacity-100 transition-all"><MoreVertical size={16} /></button></td></tr>))}</tbody></table></div>
+    </div>
+  );
 };
 
 const SettingsView = () => (
@@ -613,11 +602,7 @@ const OperatorProfileSettings = ({ operator, onUpdate }: { operator: Operator, o
           <h3 className="ui-label text-[10px] text-gold tracking-[0.2em] mb-2">OPERATOR PROFILE</h3>
           <p className="text-3xl text-white italic">Manage your business profile</p>
         </div>
-        <button 
-          onClick={handleSave}
-          disabled={isSaving}
-          className="bg-gold text-ink px-8 py-3 ui-label text-[11px] font-bold tracking-[0.2em] flex items-center gap-2 disabled:opacity-50"
-        >
+        <button onClick={handleSave} disabled={isSaving} className="bg-gold text-ink px-8 py-3 ui-label text-[11px] font-bold tracking-[0.2em] flex items-center gap-2 disabled:opacity-50">
           {isSaving ? <Clock size={16} className="animate-spin" /> : <Check size={16} />}
           {isSaving ? 'SAVING...' : 'SAVE CHANGES'}
         </button>
@@ -625,53 +610,20 @@ const OperatorProfileSettings = ({ operator, onUpdate }: { operator: Operator, o
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="space-y-6">
-          <div className="space-y-2">
-            <label className="ui-label text-[9px] text-muted">BUSINESS NAME</label>
-            <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="w-full bg-[#081221] border border-white/10 p-4 ui-label text-[11px] text-white outline-none focus:border-gold transition-colors" />
-          </div>
-          <div className="space-y-2">
-            <label className="ui-label text-[9px] text-muted">PHONE NUMBER</label>
-            <div className="relative"><Phone size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted" /><input type="text" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} className="w-full bg-[#081221] border border-white/10 pl-12 pr-4 py-4 ui-label text-[11px] text-white outline-none focus:border-gold transition-colors" /></div>
-          </div>
-          <div className="space-y-2">
-            <label className="ui-label text-[9px] text-muted">WHATSAPP NUMBER</label>
-            <div className="relative"><MessageSquare size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted" /><input type="text" value={formData.whatsapp || ''} onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })} className="w-full bg-[#081221] border border-white/10 pl-12 pr-4 py-4 ui-label text-[11px] text-white outline-none focus:border-gold transition-colors" /></div>
-          </div>
-          <div className="space-y-2">
-            <label className="ui-label text-[9px] text-muted">EMAIL ADDRESS</label>
-            <div className="relative"><Mail size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted" /><input type="email" value={formData.email || ''} onChange={(e) => setFormData({ ...formData, email: e.target.value })} className="w-full bg-[#081221] border border-white/10 pl-12 pr-4 py-4 ui-label text-[11px] text-white outline-none focus:border-gold transition-colors" /></div>
-          </div>
+          <div className="space-y-2"><label className="ui-label text-[9px] text-muted">BUSINESS NAME</label><input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="w-full bg-[#081221] border border-white/10 p-4 ui-label text-[11px] text-white outline-none focus:border-gold transition-colors" /></div>
+          <div className="space-y-2"><label className="ui-label text-[9px] text-muted">PHONE NUMBER</label><div className="relative"><Phone size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted" /><input type="text" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} className="w-full bg-[#081221] border border-white/10 pl-12 pr-4 py-4 ui-label text-[11px] text-white outline-none focus:border-gold transition-colors" /></div></div>
+          <div className="space-y-2"><label className="ui-label text-[9px] text-muted">WHATSAPP NUMBER</label><div className="relative"><MessageSquare size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted" /><input type="text" value={formData.whatsapp || ''} onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })} className="w-full bg-[#081221] border border-white/10 pl-12 pr-4 py-4 ui-label text-[11px] text-white outline-none focus:border-gold transition-colors" /></div></div>
+          <div className="space-y-2"><label className="ui-label text-[9px] text-muted">EMAIL ADDRESS</label><div className="relative"><Mail size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted" /><input type="email" value={formData.email || ''} onChange={(e) => setFormData({ ...formData, email: e.target.value })} className="w-full bg-[#081221] border border-white/10 pl-12 pr-4 py-4 ui-label text-[11px] text-white outline-none focus:border-gold transition-colors" /></div></div>
         </div>
-
         <div className="space-y-6">
-          <div className="space-y-2">
-            <label className="ui-label text-[9px] text-muted">BUSINESS DESCRIPTION</label>
-            <textarea rows={6} value={formData.description || ''} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="w-full bg-[#081221] border border-white/10 p-4 ui-label text-[11px] text-white outline-none focus:border-gold transition-colors resize-none" placeholder="Tell travelers about your service..." />
-          </div>
-          <div className="space-y-2">
-            <label className="ui-label text-[9px] text-muted">BASE LOCATION</label>
-            <div className="relative"><MapPin size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted" /><input type="text" value={formData.location} onChange={(e) => setFormData({ ...formData, location: e.target.value })} className="w-full bg-[#081221] border border-white/10 pl-12 pr-4 py-4 ui-label text-[11px] text-white outline-none focus:border-gold transition-colors" /></div>
-          </div>
+          <div className="space-y-2"><label className="ui-label text-[9px] text-muted">BUSINESS DESCRIPTION</label><textarea rows={6} value={formData.description || ''} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="w-full bg-[#081221] border border-white/10 p-4 ui-label text-[11px] text-white outline-none focus:border-gold transition-colors resize-none" placeholder="Tell travelers about your service..." /></div>
+          <div className="space-y-2"><label className="ui-label text-[9px] text-muted">BASE LOCATION</label><div className="relative"><MapPin size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted" /><input type="text" value={formData.location} onChange={(e) => setFormData({ ...formData, location: e.target.value })} className="w-full bg-[#081221] border border-white/10 pl-12 pr-4 py-4 ui-label text-[11px] text-white outline-none focus:border-gold transition-colors" /></div></div>
         </div>
       </div>
 
       <div className="space-y-6">
-        <div>
-          <h3 className="ui-label text-[10px] text-gold tracking-[0.2em] mb-2">VEHICLE GALLERY</h3>
-          <p className="text-sm text-muted mb-4">Upload photos of your vehicles, boats, or fleet</p>
-        </div>
-
-        {vehiclePhotos.length > 0 && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {vehiclePhotos.map((photo, idx) => (
-              <div key={idx} className="relative group">
-                <img src={photo} alt={`Vehicle ${idx + 1}`} className="w-full h-32 object-cover rounded-lg border border-white/10" />
-                <button onClick={() => removePhoto(idx)} className="absolute top-2 right-2 p-1 bg-red-500/80 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 size={14} className="text-white" /></button>
-              </div>
-            ))}
-          </div>
-        )}
-
+        <div><h3 className="ui-label text-[10px] text-gold tracking-[0.2em] mb-2">VEHICLE GALLERY</h3><p className="text-sm text-muted mb-4">Upload photos of your vehicles, boats, or fleet</p></div>
+        {vehiclePhotos.length > 0 && (<div className="grid grid-cols-2 md:grid-cols-4 gap-4">{vehiclePhotos.map((photo, idx) => (<div key={idx} className="relative group"><img src={photo} alt={`Vehicle ${idx + 1}`} className="w-full h-32 object-cover rounded-lg border border-white/10" /><button onClick={() => removePhoto(idx)} className="absolute top-2 right-2 p-1 bg-red-500/80 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 size={14} className="text-white" /></button></div>))}</div>)}
         <div className="flex items-center gap-4">
           <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handlePhotoUpload} className="hidden" id="photo-upload" />
           <label htmlFor="photo-upload" className={`cursor-pointer bg-white/5 border border-white/10 px-6 py-3 ui-label text-[11px] text-white hover:border-gold transition-all flex items-center gap-2 ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
@@ -684,10 +636,7 @@ const OperatorProfileSettings = ({ operator, onUpdate }: { operator: Operator, o
 
       <div className="p-8 bg-gold/5 border border-gold/20 flex items-start gap-4">
         <Shield size={20} className="text-gold flex-shrink-0 mt-1" />
-        <div>
-          <p className="ui-label text-[10px] text-white mb-2">VERIFIED OPERATOR STATUS</p>
-          <p className="text-[11px] text-muted leading-relaxed">Your profile information is visible to travelers when they view your routes. Vehicle photos help build trust and increase bookings.</p>
-        </div>
+        <div><p className="ui-label text-[10px] text-white mb-2">VERIFIED OPERATOR STATUS</p><p className="text-[11px] text-muted leading-relaxed">Your profile information is visible to travelers when they view your routes. Vehicle photos help build trust and increase bookings.</p></div>
       </div>
     </div>
   );
