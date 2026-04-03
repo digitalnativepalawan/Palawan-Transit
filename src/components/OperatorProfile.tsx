@@ -6,7 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { ArrowLeft, MapPin, Star, Shield, Phone, Mail, FileText, ExternalLink, Anchor, Truck, Waves, Camera, X, Clock, CheckCircle } from 'lucide-react';
-import { Operator, Route } from '../types';
+import { Operator, OperatorPermit, Route } from '../types';
 import { RouteCard, DiamondDivider } from './UI';
 import { supabase } from '../lib/supabase';
 
@@ -19,6 +19,7 @@ interface OperatorProfileProps {
 
 export const OperatorProfileView = ({ operator, routes, onBack, onViewRoute }: OperatorProfileProps) => {
   const [vehiclePhotos, setVehiclePhotos] = useState<string[]>([]);
+  const [permits, setPermits] = useState<OperatorPermit[]>([]);
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
   const [operatorDetails, setOperatorDetails] = useState<any>(null);
   
@@ -29,19 +30,20 @@ export const OperatorProfileView = ({ operator, routes, onBack, onViewRoute }: O
     const fetchOperatorDetails = async () => {
       const { data } = await supabase
         .from('operators')
-        .select('vehicle_photos, years_experience, operating_hours')
+        .select('vehicle_photos, permits, years_experience, operating_hours')
         .eq('id', operator.id)
         .single();
       
       if (data) {
         setOperatorDetails(data);
         setVehiclePhotos(data.vehicle_photos || []);
+        setPermits(data.permits || []);
       }
     };
     fetchOperatorDetails();
   }, [operator.id]);
 
-  const hasPhotos = vehiclePhotos.length > 0;
+  const isImage = (url: string) => /\.(jpg|jpeg|png|gif|webp)/i.test(url);
 
   return (
     <motion.div
@@ -114,6 +116,12 @@ export const OperatorProfileView = ({ operator, routes, onBack, onViewRoute }: O
                   <span>{operatorDetails.years_experience} yrs experience</span>
                 </div>
               )}
+              {permits.length > 0 && (
+                <div className="flex items-center gap-1 text-xs text-seafoam">
+                  <Shield size={14} />
+                  <span>{permits.length} permit{permits.length !== 1 ? 's' : ''} on file</span>
+                </div>
+              )}
             </div>
 
             <div className="space-y-3 border-t border-border pt-6">
@@ -147,13 +155,32 @@ export const OperatorProfileView = ({ operator, routes, onBack, onViewRoute }: O
 
             <DiamondDivider />
 
-            <div className="space-y-4">
-              <h3 className="ui-label text-gold text-[10px] tracking-[0.2em] mb-4">VERIFIED PERMITS</h3>
-              {operator.permits && operator.permits.length > 0 ? (
-                operator.permits.map((permit, i) => (
-                  <div key={i} className="flex items-center gap-3 text-muted">
-                    <Shield size={14} className="text-success" />
-                    <span className="ui-label text-[9px]">{permit.toUpperCase()}</span>
+            {/* Permits & Licenses */}
+            <div className="space-y-3">
+              <h3 className="ui-label text-gold text-[10px] tracking-[0.2em] mb-4">PERMITS & LICENSES</h3>
+              {permits.length > 0 ? (
+                permits.map((permit, i) => (
+                  <div key={i} className="flex items-center justify-between group">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 border border-white/10 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                        {isImage(permit.url)
+                          ? <img src={permit.url} alt="" className="w-full h-full object-cover" />
+                          : <FileText size={14} className="text-gold" />
+                        }
+                      </div>
+                      <div>
+                        <p className="ui-label text-[9px] text-white">{permit.label}</p>
+                        <p className="ui-label text-[8px] text-muted">{new Date(permit.uploaded_at).toLocaleDateString()}</p>
+                      </div>
+                    </div>
+                    
+                      href={permit.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="p-1 text-muted hover:text-gold transition-colors opacity-0 group-hover:opacity-100"
+                    >
+                      <ExternalLink size={12} />
+                    </a>
                   </div>
                 ))
               ) : (
@@ -165,31 +192,49 @@ export const OperatorProfileView = ({ operator, routes, onBack, onViewRoute }: O
             </div>
           </div>
 
-          {/* Vehicle Photos Gallery */}
+          {/* Vehicle & Boat Gallery */}
           <div className="space-y-4">
-            <h3 className="ui-label text-gold text-[10px] tracking-[0.2em]">VEHICLE GALLERY</h3>
-            {hasPhotos ? (
-              <div className="grid grid-cols-2 gap-3">
-                {vehiclePhotos.slice(0, 4).map((img, i) => (
-                  <div 
-                    key={i} 
-                    className="aspect-square bg-surface border border-border overflow-hidden cursor-pointer hover:border-gold transition-all"
-                    onClick={() => setSelectedPhoto(img)}
-                  >
-                    <img 
-                      src={img} 
-                      alt={`Vehicle ${i + 1}`} 
-                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-                    />
-                  </div>
-                ))}
-                {vehiclePhotos.length === 0 && (
-                  <div className="col-span-2 py-8 text-center text-muted text-sm border border-border">
-                    <Camera size={24} className="mx-auto mb-2 opacity-50" />
-                    No vehicle photos yet
+            <div className="flex justify-between items-center">
+              <h3 className="ui-label text-gold text-[10px] tracking-[0.2em]">VEHICLE & BOAT GALLERY</h3>
+              {vehiclePhotos.length > 0 && (
+                <span className="ui-label text-[9px] text-muted">{vehiclePhotos.length} PHOTO{vehiclePhotos.length !== 1 ? 'S' : ''}</span>
+              )}
+            </div>
+            {vehiclePhotos.length > 0 ? (
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  {vehiclePhotos.slice(0, 4).map((img, i) => (
+                    <div 
+                      key={i} 
+                      className="aspect-square bg-surface border border-border overflow-hidden cursor-pointer hover:border-gold transition-all"
+                      onClick={() => setSelectedPhoto(img)}
+                    >
+                      <img 
+                        src={img} 
+                        alt={`Vehicle ${i + 1}`} 
+                        className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                      />
+                    </div>
+                  ))}
+                </div>
+                {vehiclePhotos.length > 4 && (
+                  <div className="grid grid-cols-3 gap-3">
+                    {vehiclePhotos.slice(4).map((img, i) => (
+                      <div 
+                        key={i} 
+                        className="aspect-square bg-surface border border-border overflow-hidden cursor-pointer hover:border-gold transition-all"
+                        onClick={() => setSelectedPhoto(img)}
+                      >
+                        <img 
+                          src={img} 
+                          alt={`Vehicle ${i + 5}`} 
+                          className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                        />
+                      </div>
+                    ))}
                   </div>
                 )}
-              </div>
+              </>
             ) : (
               <div className="grid grid-cols-2 gap-4">
                 {(operator.images && operator.images.length > 0 ? operator.images : [
@@ -212,7 +257,7 @@ export const OperatorProfileView = ({ operator, routes, onBack, onViewRoute }: O
           </div>
         </div>
 
-        {/* Right Column: Other Routes */}
+        {/* Right Column: Routes */}
         <div className="lg:col-span-2">
           <div className="flex justify-between items-end mb-8">
             <div>
