@@ -5,8 +5,8 @@
 
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Menu, Anchor, Truck, Waves, ChevronRight, Minus, Plus, Calendar, MapPin, Users, Check, Clock, Share2, Copy, CalendarPlus, Shield, X, Phone, Search, BookOpen } from 'lucide-react';
-import { Route, TransportMode, BookingStatus } from '../types';
+import { Menu, Anchor, Truck, Waves, Shield, X, Phone, BookOpen } from 'lucide-react';
+import { Route, BookingStatus } from '../types';
 import { supabase } from '../lib/supabase';
 
 // --- Diamond Divider ---
@@ -163,6 +163,29 @@ const MyBookingsModal = ({ onClose }: { onClose: () => void }) => {
   );
 };
 
+// --- Nav Item ---
+const NavItem = ({ label, href, onClick, onClose }: { label: string; href?: string; onClick?: () => void; onClose: () => void }) => {
+  if (onClick) {
+    return (
+      <button
+        onClick={() => { onClose(); onClick(); }}
+        className="block text-4xl text-white italic hover:text-gold transition-colors text-left w-full"
+      >
+        {label}
+      </button>
+    );
+  }
+  return (
+    
+      href={href || '#'}
+      onClick={onClose}
+      className="block text-4xl text-white italic hover:text-gold transition-colors"
+    >
+      {label}
+    </a>
+  );
+};
+
 // --- Navbar ---
 export const Navbar = ({ onAdminClick }: { onAdminClick: (title?: string) => void }) => {
   const [scrolled, setScrolled] = React.useState(false);
@@ -174,14 +197,6 @@ export const Navbar = ({ onAdminClick }: { onAdminClick: (title?: string) => voi
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-
-  const navItems = [
-    { label: 'HOME', href: '#', onClick: null },
-    { label: 'ROUTES', href: '#', onClick: null },
-    { label: 'MY BOOKINGS', href: null, onClick: () => setShowBookings(true) },
-    { label: 'OPERATOR LOGIN', href: null, onClick: () => onAdminClick('Operator Login') },
-    { label: 'HELP & CONTACT', href: '#', onClick: null },
-  ];
 
   return (
     <>
@@ -246,28 +261,13 @@ export const Navbar = ({ onAdminClick }: { onAdminClick: (title?: string) => voi
               </button>
 
               <div className="space-y-8">
-                {navItems.map((item) => (
-                  item.onClick ? (
-                    <button
-                      key={item.label}
-                      onClick={() => { setIsMenuOpen(false); item.onClick!(); }}
-                      className="block text-4xl text-white italic hover:text-gold transition-colors text-left w-full"
-                    >
-                      {item.label}
-                    </button>
-                  ) : (
-                    
-                      key={item.label}
-                      href={item.href || '#'}
-                      onClick={() => setIsMenuOpen(false)}
-                      className="block text-4xl text-white italic hover:text-gold transition-colors"
-                    >
-                      {item.label}
-                    </a>
-                  )
-                ))}
+                <NavItem label="HOME" href="#" onClose={() => setIsMenuOpen(false)} />
+                <NavItem label="ROUTES" href="#" onClose={() => setIsMenuOpen(false)} />
+                <NavItem label="MY BOOKINGS" onClick={() => setShowBookings(true)} onClose={() => setIsMenuOpen(false)} />
+                <NavItem label="OPERATOR LOGIN" onClick={() => onAdminClick('Operator Login')} onClose={() => setIsMenuOpen(false)} />
+                <NavItem label="HELP & CONTACT" href="#" onClose={() => setIsMenuOpen(false)} />
 
-                <div className="pt-8 border-t border-border mt-8">
+                <div className="pt-8 border-t border-border">
                   <button
                     onClick={() => { setIsMenuOpen(false); onAdminClick('Admin Access'); }}
                     className="flex items-center gap-3 text-gold ui-label tracking-[0.2em]"
