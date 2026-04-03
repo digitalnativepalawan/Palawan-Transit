@@ -532,7 +532,7 @@ const BookingsView = ({ bookings, onManualBooking, onUpdateStatus, isOperatorPor
               <th className="px-6 py-4 ui-label text-[9px] text-muted tracking-[0.2em]">STATUS</th>
               <th className="px-6 py-4 ui-label text-[9px] text-muted tracking-[0.2em]">TOTAL</th>
               <th className="px-6 py-4 ui-label text-[9px] text-muted tracking-[0.2em] text-right">ACTIONS</th>
-            </tr>
+             </tr>
           </thead>
           <tbody className="divide-y divide-white/5">
             {filtered.map((b: any) => (
@@ -559,41 +559,61 @@ const BookingsView = ({ bookings, onManualBooking, onUpdateStatus, isOperatorPor
 };
 
 // ============================================
-// ROUTES VIEW
+// ROUTES VIEW (WITH FILTER BUTTONS)
 // ============================================
 
-const RoutesView = ({ routes, onAdd, onEdit, onDelete }: any) => (
-  <div className="space-y-6 lg:space-y-8">
-    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-      <h3 className="ui-label text-[10px] text-gold tracking-[0.2em]">{routes.length} ACTIVE ROUTES</h3>
-      <button onClick={onAdd} className="w-full sm:w-auto bg-gold text-ink px-8 py-3 ui-label text-[11px] font-bold tracking-[0.2em] flex items-center justify-center gap-2"><Plus size={16} /> CREATE NEW ROUTE</button>
-    </div>
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
-      {routes.map((r: any) => (
-        <div key={r.id} className="bg-[#081221] border border-white/10 p-6 lg:p-8 flex justify-between items-start group hover:border-gold/50 transition-all">
-          <div className="flex-1">
-            <div className="flex items-center gap-3 mb-4">
-              {r.mode === 'SHUTTLE_SHARED' || r.mode === 'SHUTTLE_PRIVATE' ? <Truck size={16} className="text-gold" /> : r.mode === 'PRIVATE_4X4' ? <Truck size={16} className="text-danger" /> : r.mode === 'BANGKA' || r.mode === 'ISLAND_HOPPING' ? <Anchor size={16} className="text-seafoam" /> : <Waves size={16} className="text-gold" />}
-              <span className="ui-label text-[9px] text-muted tracking-[0.2em]">{r.mode}</span>
-              <span className="w-1 h-1 rounded-full bg-success" />
-              <span className="ui-label text-[9px] text-success tracking-[0.2em]">LIVE</span>
-            </div>
-            <h4 className="text-2xl lg:text-3xl text-white italic mb-2">{r.from} → {r.to}</h4>
-            <p className="ui-label text-[10px] text-muted tracking-widest mb-6">{r.operator} · {r.duration} · {r.departureTime}</p>
-            <div className="flex gap-4">
-              <button onClick={() => onEdit(r)} className="ui-label text-[9px] text-gold hover:underline">EDIT DETAILS</button>
-              <button onClick={() => onDelete(r.id)} className="ui-label text-[9px] text-danger hover:underline">DELETE</button>
-            </div>
-          </div>
-          <div className="text-right ml-4">
-            <p className="text-2xl lg:text-3xl text-white font-ui mb-1">₱{r.price}</p>
-            <p className="ui-label text-[8px] text-muted">{r.bookingType} BOOKING</p>
-          </div>
+const RoutesView = ({ routes, onAdd, onEdit, onDelete }: any) => {
+  const [tourTypeFilter, setTourTypeFilter] = React.useState<'ALL' | 'LAND' | 'ISLAND'>('ALL');
+  
+  const filteredRoutes = routes.filter((r: any) => {
+    if (tourTypeFilter === 'ALL') return true;
+    if (tourTypeFilter === 'LAND') return r.mode !== 'ISLAND_HOPPING';
+    if (tourTypeFilter === 'ISLAND') return r.mode === 'ISLAND_HOPPING';
+    return true;
+  });
+
+  return (
+    <div className="space-y-6 lg:space-y-8">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex gap-2">
+          <button onClick={() => setTourTypeFilter('ALL')} className={`px-4 py-2 ui-label text-[10px] tracking-[0.2em] transition-colors ${tourTypeFilter === 'ALL' ? 'bg-gold text-ink' : 'bg-surface border border-white/10 text-muted hover:text-white'}`}>ALL</button>
+          <button onClick={() => setTourTypeFilter('LAND')} className={`px-4 py-2 ui-label text-[10px] tracking-[0.2em] transition-colors ${tourTypeFilter === 'LAND' ? 'bg-gold text-ink' : 'bg-surface border border-white/10 text-muted hover:text-white'}`}>LAND</button>
+          <button onClick={() => setTourTypeFilter('ISLAND')} className={`px-4 py-2 ui-label text-[10px] tracking-[0.2em] transition-colors ${tourTypeFilter === 'ISLAND' ? 'bg-gold text-ink' : 'bg-surface border border-white/10 text-muted hover:text-white'}`}>ISLAND</button>
         </div>
-      ))}
+        <button onClick={onAdd} className="w-full sm:w-auto bg-gold text-ink px-8 py-3 ui-label text-[11px] font-bold tracking-[0.2em] flex items-center justify-center gap-2"><Plus size={16} /> CREATE NEW ROUTE</button>
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
+        {filteredRoutes.map((r: any) => (
+          <div key={r.id} className="bg-[#081221] border border-white/10 p-6 lg:p-8 flex justify-between items-start group hover:border-gold/50 transition-all">
+            <div className="flex-1">
+              <div className="flex items-center gap-3 mb-4">
+                {r.mode === 'ISLAND_HOPPING' ? <Anchor size={16} className="text-seafoam" /> : 
+                 r.mode === 'SHUTTLE_SHARED' || r.mode === 'SHUTTLE_PRIVATE' ? <Truck size={16} className="text-gold" /> : 
+                 r.mode === 'PRIVATE_4X4' ? <Truck size={16} className="text-danger" /> : 
+                 r.mode === 'BANGKA' ? <Anchor size={16} className="text-seafoam" /> : 
+                 <Waves size={16} className="text-gold" />}
+                <span className="ui-label text-[9px] text-muted tracking-[0.2em]">{r.mode === 'ISLAND_HOPPING' ? 'ISLAND TOUR' : r.mode}</span>
+                {r.mode === 'ISLAND_HOPPING' && <span className="ui-label text-[8px] px-2 py-0.5 bg-seafoam/20 text-seafoam tracking-[0.1em] rounded">ISLAND</span>}
+                <span className="w-1 h-1 rounded-full bg-success" />
+                <span className="ui-label text-[9px] text-success tracking-[0.2em]">LIVE</span>
+              </div>
+              <h4 className="text-2xl lg:text-3xl text-white italic mb-2">{r.from} → {r.to}</h4>
+              <p className="ui-label text-[10px] text-muted tracking-widest mb-6">{r.operator} · {r.duration} · {r.departureTime}</p>
+              <div className="flex gap-4">
+                <button onClick={() => onEdit(r)} className="ui-label text-[9px] text-gold hover:underline">EDIT DETAILS</button>
+                <button onClick={() => onDelete(r.id)} className="ui-label text-[9px] text-danger hover:underline">DELETE</button>
+              </div>
+            </div>
+            <div className="text-right ml-4">
+              <p className="text-2xl lg:text-3xl text-white font-ui mb-1">₱{r.price}</p>
+              <p className="ui-label text-[8px] text-muted">{r.bookingType} BOOKING</p>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 // ============================================
 // OPERATORS VIEW
@@ -636,7 +656,7 @@ const OperatorsView = ({ operators, onAdd, onEdit, onDelete }: any) => (
             <th className="px-6 py-4 ui-label text-[9px] text-muted tracking-[0.2em]">PERMITS</th>
             <th className="px-6 py-4 ui-label text-[9px] text-muted tracking-[0.2em]">STATUS</th>
             <th className="px-6 py-4"></th>
-          </tr>
+           </tr>
         </thead>
         <tbody className="divide-y divide-white/5">
           {operators.map((op: any) => (
