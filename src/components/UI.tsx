@@ -20,7 +20,7 @@ export const DiamondDivider = () => (
 
 // --- Status Badge ---
 export const StatusBadge = ({ status }: { status: BookingStatus }) => {
-  const styles = {
+  const styles: Record<string, string> = {
     PENDING: 'bg-gold text-ink',
     CONFIRMED: 'bg-success text-ink',
     CANCELLED: 'bg-danger text-ink',
@@ -47,13 +47,11 @@ const MyBookingsModal = ({ onClose }: { onClose: () => void }) => {
     setLoading(true);
     setError('');
     setSearched(false);
-
     const { data, error: err } = await supabase
       .from('bookings')
       .select('*')
       .eq('customer_phone', phone.trim())
       .order('created_at', { ascending: false });
-
     if (err) {
       setError('Something went wrong. Please try again.');
     } else {
@@ -84,7 +82,6 @@ const MyBookingsModal = ({ onClose }: { onClose: () => void }) => {
         exit={{ scale: 0.9, opacity: 0 }}
         className="bg-deep border border-border w-full max-w-lg relative z-10 overflow-hidden"
       >
-        {/* Header */}
         <div className="flex items-center justify-between p-8 border-b border-border">
           <div>
             <h2 className="text-3xl text-white italic">My Bookings</h2>
@@ -95,7 +92,6 @@ const MyBookingsModal = ({ onClose }: { onClose: () => void }) => {
           </button>
         </div>
 
-        {/* Search */}
         <div className="p-8 border-b border-border">
           <div className="flex gap-3">
             <div className="relative flex-1">
@@ -120,7 +116,6 @@ const MyBookingsModal = ({ onClose }: { onClose: () => void }) => {
           {error && <p className="text-danger ui-label text-[9px] mt-2">{error}</p>}
         </div>
 
-        {/* Results */}
         <div className="max-h-[50vh] overflow-y-auto">
           {searched && bookings.length === 0 && (
             <div className="p-12 text-center">
@@ -129,7 +124,6 @@ const MyBookingsModal = ({ onClose }: { onClose: () => void }) => {
               <p className="text-muted text-sm mt-2 italic">Check your number and try again</p>
             </div>
           )}
-
           {bookings.map((b, i) => (
             <div key={b.id} className={`p-6 ${i < bookings.length - 1 ? 'border-b border-border/50' : ''} hover:bg-white/5 transition-colors`}>
               <div className="flex justify-between items-start mb-3">
@@ -137,27 +131,13 @@ const MyBookingsModal = ({ onClose }: { onClose: () => void }) => {
                   <p className="font-ui text-gold text-sm tracking-wider">{b.reference_code}</p>
                   <p className="text-white italic text-lg mt-0.5">{b.customer_name}</p>
                 </div>
-                <span className={`ui-label text-[8px] px-2 py-1 ${statusColor(b.status)}`}>
-                  {b.status}
-                </span>
+                <span className={`ui-label text-[8px] px-2 py-1 ${statusColor(b.status)}`}>{b.status}</span>
               </div>
               <div className="grid grid-cols-2 gap-3 mt-4">
-                <div>
-                  <p className="ui-label text-[8px] text-muted mb-1">DATE</p>
-                  <p className="text-white text-xs">{b.date}</p>
-                </div>
-                <div>
-                  <p className="ui-label text-[8px] text-muted mb-1">SEATS</p>
-                  <p className="text-white text-xs">{b.seats}</p>
-                </div>
-                <div>
-                  <p className="ui-label text-[8px] text-muted mb-1">TOTAL</p>
-                  <p className="text-white font-ui">₱{b.total_price?.toLocaleString()}</p>
-                </div>
-                <div>
-                  <p className="ui-label text-[8px] text-muted mb-1">PIN CODE</p>
-                  <p className="text-gold font-ui tracking-widest">{b.pin_code || '—'}</p>
-                </div>
+                <div><p className="ui-label text-[8px] text-muted mb-1">DATE</p><p className="text-white text-xs">{b.date}</p></div>
+                <div><p className="ui-label text-[8px] text-muted mb-1">SEATS</p><p className="text-white text-xs">{b.seats}</p></div>
+                <div><p className="ui-label text-[8px] text-muted mb-1">TOTAL</p><p className="text-white font-ui">₱{b.total_price?.toLocaleString()}</p></div>
+                <div><p className="ui-label text-[8px] text-muted mb-1">PIN CODE</p><p className="text-gold font-ui tracking-widest">{b.pin_code || '—'}</p></div>
               </div>
               {b.status === 'PENDING' && (
                 <div className="mt-4 p-3 bg-gold/5 border border-gold/20">
@@ -173,7 +153,6 @@ const MyBookingsModal = ({ onClose }: { onClose: () => void }) => {
           ))}
         </div>
 
-        {/* Footer */}
         <div className="p-6 border-t border-border bg-surface/30">
           <p className="ui-label text-[9px] text-muted text-center tracking-[0.1em]">
             Need help? Contact us at hello@palawan.transit
@@ -197,11 +176,11 @@ export const Navbar = ({ onAdminClick }: { onAdminClick: (title?: string) => voi
   }, []);
 
   const navItems = [
-    { label: 'HOME', href: '#' },
-    { label: 'ROUTES', href: '#' },
-    { label: 'MY BOOKINGS', onClick: () => setShowBookings(true) },
-    { label: 'OPERATOR LOGIN', onClick: () => onAdminClick('Operator Login') },
-    { label: 'HELP & CONTACT', href: '#' },
+    { label: 'HOME', href: '#', onClick: null },
+    { label: 'ROUTES', href: '#', onClick: null },
+    { label: 'MY BOOKINGS', href: null, onClick: () => setShowBookings(true) },
+    { label: 'OPERATOR LOGIN', href: null, onClick: () => onAdminClick('Operator Login') },
+    { label: 'HELP & CONTACT', href: '#', onClick: null },
   ];
 
   return (
@@ -212,7 +191,6 @@ export const Navbar = ({ onAdminClick }: { onAdminClick: (title?: string) => voi
             <span className="font-display text-lg tracking-[0.3em] text-white uppercase">PALAWAN</span>
             <span className="font-ui text-[10px] text-gold ml-2 hidden sm:inline">.TRANSIT</span>
           </div>
-          
           <div className="flex items-center gap-2 sm:gap-4">
             <button
               onClick={() => setShowBookings(true)}
@@ -221,7 +199,7 @@ export const Navbar = ({ onAdminClick }: { onAdminClick: (title?: string) => voi
               <BookOpen size={12} />
               MY BOOKINGS
             </button>
-            <button 
+            <button
               onClick={() => onAdminClick('Admin Access')}
               className="group relative flex items-center gap-1.5 sm:gap-3 px-2.5 sm:px-6 py-1.5 sm:py-2.5 bg-white/5 border border-white/10 hover:border-gold/50 transition-all duration-500 overflow-hidden"
             >
@@ -230,7 +208,7 @@ export const Navbar = ({ onAdminClick }: { onAdminClick: (title?: string) => voi
               <span className="ui-label text-white/60 group-hover:text-white text-[8px] sm:text-[10px] tracking-[0.1em] sm:tracking-[0.3em] font-medium transition-colors">ADMIN</span>
               <div className="w-1 h-1 rounded-full bg-gold/20 group-hover:bg-gold transition-all duration-300 group-hover:scale-125 hidden sm:block" />
             </button>
-            <button 
+            <button
               onClick={() => setIsMenuOpen(true)}
               className="p-2 text-white hover:text-gold transition-colors"
             >
@@ -240,12 +218,10 @@ export const Navbar = ({ onAdminClick }: { onAdminClick: (title?: string) => voi
         </div>
       </nav>
 
-      {/* My Bookings Modal */}
       <AnimatePresence>
         {showBookings && <MyBookingsModal onClose={() => setShowBookings(false)} />}
       </AnimatePresence>
 
-      {/* Mobile Menu Drawer */}
       <AnimatePresence>
         {isMenuOpen && (
           <motion.div
@@ -262,7 +238,7 @@ export const Navbar = ({ onAdminClick }: { onAdminClick: (title?: string) => voi
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
               className="w-full max-w-xs bg-deep border-l border-border h-full relative z-10 flex flex-col p-10"
             >
-              <button 
+              <button
                 onClick={() => setIsMenuOpen(false)}
                 className="self-end p-2 text-muted hover:text-white transition-colors mb-12"
               >
@@ -274,10 +250,7 @@ export const Navbar = ({ onAdminClick }: { onAdminClick: (title?: string) => voi
                   item.onClick ? (
                     <button
                       key={item.label}
-                      onClick={() => {
-                        setIsMenuOpen(false);
-                        item.onClick!();
-                      }}
+                      onClick={() => { setIsMenuOpen(false); item.onClick!(); }}
                       className="block text-4xl text-white italic hover:text-gold transition-colors text-left w-full"
                     >
                       {item.label}
@@ -285,7 +258,7 @@ export const Navbar = ({ onAdminClick }: { onAdminClick: (title?: string) => voi
                   ) : (
                     
                       key={item.label}
-                      href={item.href}
+                      href={item.href || '#'}
                       onClick={() => setIsMenuOpen(false)}
                       className="block text-4xl text-white italic hover:text-gold transition-colors"
                     >
@@ -293,13 +266,10 @@ export const Navbar = ({ onAdminClick }: { onAdminClick: (title?: string) => voi
                     </a>
                   )
                 ))}
-                
+
                 <div className="pt-8 border-t border-border mt-8">
                   <button
-                    onClick={() => {
-                      setIsMenuOpen(false);
-                      onAdminClick('Admin Access');
-                    }}
+                    onClick={() => { setIsMenuOpen(false); onAdminClick('Admin Access'); }}
                     className="flex items-center gap-3 text-gold ui-label tracking-[0.2em]"
                   >
                     <Shield size={16} />
