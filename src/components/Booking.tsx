@@ -5,24 +5,56 @@
 
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Minus, Plus, Calendar, MapPin, Users, Check, Clock, Share2, Copy, CalendarPlus, X, ArrowRight, CreditCard, Wallet } from 'lucide-react';
-import { Route, CITIES, TOURS, SearchType } from '../types';
+import { Minus, Plus, Calendar, MapPin, Users, Check, Clock, Share2, Copy, CalendarPlus, X, ArrowRight, CreditCard, Wallet, Users as UsersIcon, Ship } from 'lucide-react';
+import { Route, CITIES, ISLAND_LOCATIONS, SearchType } from '../types';
+import { supabase } from '../lib/supabase';
 
 // --- Search Widget ---
-export const SearchWidget = ({ onSearch }: { onSearch: (from: string, to: string, date: string, seats: number) => void }) => {
+export const SearchWidget = ({ onSearch }: { onSearch: (from: string, to: string, date: string, seats: number, searchType?: SearchType, groupType?: string) => void }) => {
   const [searchType, setSearchType] = React.useState<SearchType>('TRANSPORT');
   const [from, setFrom] = React.useState(CITIES[0]);
   const [to, setTo] = React.useState(CITIES[1]);
-  const [tour, setTour] = React.useState(TOURS[0]);
+  const [tourLocation, setTourLocation] = React.useState('Port Barton');
+  const [selectedTour, setSelectedTour] = React.useState<any>(null);
+  const [tours, setTours] = React.useState<any[]>([]);
+  const [groupType, setGroupType] = React.useState<'SHARED' | 'PRIVATE'>('SHARED');
   const [date, setDate] = React.useState(new Date().toISOString().split('T')[0]);
   const [seats, setSeats] = React.useState(1);
 
-  // When switching to Island Hopping, set 'to' to the selected tour
+  // Fetch island hopping tours from database
+  React.useEffect(() => {
+    const fetchTours = async () => {
+      const { data } = await supabase
+        .from('island_hopping_tours')
+        .select('*')
+        .eq('is_active', true);
+      if (data) setTours(data);
+    };
+    fetchTours();
+  }, []);
+
+  // Update selected tour when location changes
+  React.useEffect(() => {
+    const tour = tours.find(t => t.location === tourLocation);
+    setSelectedTour(tour);
+  }, [tourLocation, tours]);
+
   const handleSearch = () => {
     if (searchType === 'ISLAND_HOPPING') {
-      onSearch(from, tour, date, seats);
+      // Pass tour info as "to" parameter with special format
+      const tourParam = `ISLAND:${tourLocation}:${selectedTour?.tour_name || 'Tour A'}:${groupType}`;
+      onSearch(tourLocation, tourParam, date, seats, 'ISLAND_HOPPING', groupType);
     } else {
-      onSearch(from, to, date, seats);
+      onSearch(from, to, date, seats, 'TRANSPORT');
+    }
+  };
+
+  const getPriceDisplay = () => {
+    if (!selectedTour) return '';
+    if (groupType === 'SHARED') {
+      return `₱${selectedTour.shared_price_per_person}/person`;
+    } else {
+      return `₱${selectedTour.private_boat_flat_rate} flat (up to ${selectedTour.max_passengers} pax)`;
     }
   };
 
@@ -49,43 +81,112 @@ export const SearchWidget = ({ onSearch }: { onSearch: (from: string, to: string
       </div>
 
       <div className="space-y-4">
-        <div className="space-y-1">
-          <label className="ui-label text-muted">{searchType === 'TRANSPORT' ? 'FROM' : 'LOCATION'}</label>
-          <div className="relative">
-            <MapPin size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gold" />
-            <select
-              value={from}
-              onChange={(e) => setFrom(e.target.value)}
-              className="w-full bg-surface border border-border px-12 py-4 text-white focus:border-seafoam focus:outline-none transition-colors appearance-none"
-            >
-              {CITIES.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
-          </div>
-        </div>
+        {searchType === 'TRANSPORT' ? (
+          <>
+            <div className="space-y-1">
+              <label className="ui-label text-muted">FROM</label>
+              <div className="relative">
+                <MapPin size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gold" />
+                <select
+                  value={from}
+                  onChange={(e) => setFrom(e.target.value)}
+                  className="w-full bg-surface border border-border px-12 py-4 text-white focus:border-seafoam focus:outline-none transition-colors appearance-none"
+                >
+                  {CITIES.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+            </div>
 
-        <div className="space-y-1">
-          <label className="ui-label text-muted">{searchType === 'TRANSPORT' ? 'TO' : 'SELECT TOUR'}</label>
-          <div className="relative">
-            <MapPin size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-seafoam" />
-            {searchType === 'TRANSPORT' ? (
-              <select
-                value={to}
-                onChange={(e) => setTo(e.target.value)}
-                className="w-full bg-surface border border-border px-12 py-4 text-white focus:border-seafoam focus:outline-none transition-colors appearance-none"
-              >
-                {CITIES.filter(c => c !== from).map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-            ) : (
-              <select
-                value={tour}
-                onChange={(e) => setTour(e.target.value)}
-                className="w-full bg-surface border border-border px-12 py-4 text-white focus:border-seafoam focus:outline-none transition-colors appearance-none"
-              >
-                {TOURS.map(t => <option key={t} value={t}>{t}</option>)}
-              </select>
+            <div className="space-y-1">
+              <label className="ui-label text-muted">TO</label>
+              <div className="relative">
+                <MapPin size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-seafoam" />
+                <select
+                  value={to}
+                  onChange={(e) => setTo(e.target.value)}
+                  className="w-full bg-surface border border-border px-12 py-4 text-white focus:border-seafoam focus:outline-none transition-colors appearance-none"
+                >
+                  {CITIES.filter(c => c !== from).map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="space-y-1">
+              <label className="ui-label text-muted">LOCATION</label>
+              <div className="relative">
+                <Ship size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gold" />
+                <select
+                  value={tourLocation}
+                  onChange={(e) => setTourLocation(e.target.value)}
+                  className="w-full bg-surface border border-border px-12 py-4 text-white focus:border-seafoam focus:outline-none transition-colors appearance-none"
+                >
+                  <option value="Port Barton">Port Barton</option>
+                  <option value="San Vicente">San Vicente</option>
+                  <option value="El Nido">El Nido</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="ui-label text-muted">SELECT TOUR</label>
+              <div className="relative">
+                <MapPin size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-seafoam" />
+                <select
+                  value={selectedTour?.tour_name || 'Tour A - The Essential Experience'}
+                  onChange={(e) => {
+                    const tour = tours.find(t => t.tour_name === e.target.value);
+                    setSelectedTour(tour);
+                  }}
+                  className="w-full bg-surface border border-border px-12 py-4 text-white focus:border-seafoam focus:outline-none transition-colors appearance-none"
+                >
+                  {tours.filter(t => t.location === tourLocation).map(t => (
+                    <option key={t.id} value={t.tour_name}>{t.tour_name}</option>
+                  ))}
+                  {tours.filter(t => t.location === tourLocation).length === 0 && (
+                    <option>Tour A - The Essential Experience</option>
+                  )}
+                </select>
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="ui-label text-muted">BOOKING TYPE</label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => setGroupType('SHARED')}
+                  className={`py-3 border transition-all flex items-center justify-center gap-2 ${groupType === 'SHARED' ? 'bg-gold text-ink border-gold' : 'bg-surface border-border text-white hover:border-gold'}`}
+                >
+                  <UsersIcon size={16} />
+                  <span className="ui-label text-[10px]">JOIN GROUP (SHARED)</span>
+                </button>
+                <button
+                  onClick={() => setGroupType('PRIVATE')}
+                  className={`py-3 border transition-all flex items-center justify-center gap-2 ${groupType === 'PRIVATE' ? 'bg-gold text-ink border-gold' : 'bg-surface border-border text-white hover:border-gold'}`}
+                >
+                  <Ship size={16} />
+                  <span className="ui-label text-[10px]">PRIVATE BOAT</span>
+                </button>
+              </div>
+            </div>
+
+            {selectedTour && (
+              <div className="bg-surface/30 p-3 rounded text-center">
+                <p className="text-gold font-ui text-sm">{getPriceDisplay()}</p>
+                {groupType === 'PRIVATE' && (
+                  <p className="text-muted text-[8px] mt-1">Up to {selectedTour.max_passengers} passengers</p>
+                )}
+              </div>
             )}
-          </div>
-        </div>
+
+            {selectedTour?.highlights && (
+              <div className="text-center">
+                <p className="text-muted text-[8px] tracking-wider">✨ {selectedTour.highlights.slice(0, 2).join(' · ')} ✨</p>
+              </div>
+            )}
+          </>
+        )}
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1">
@@ -111,7 +212,7 @@ export const SearchWidget = ({ onSearch }: { onSearch: (from: string, to: string
               </button>
               <span className="w-10 text-center font-ui text-white">{seats}</span>
               <button
-                onClick={() => setSeats(Math.min(10, seats + 1))}
+                onClick={() => setSeats(Math.min(selectedTour?.max_passengers || 10, seats + 1))}
                 className="flex-grow flex items-center justify-center text-muted hover:text-white transition-colors"
               >
                 <Plus size={16} />
@@ -124,7 +225,7 @@ export const SearchWidget = ({ onSearch }: { onSearch: (from: string, to: string
           onClick={handleSearch}
           className="w-full bg-gold hover:bg-gold-light text-ink font-ui py-5 tracking-[0.2em] transition-all active:scale-[0.98]"
         >
-          FIND ROUTES
+          FIND {searchType === 'TRANSPORT' ? 'ROUTES' : 'TOURS'}
         </button>
       </div>
     </motion.div>
@@ -137,12 +238,70 @@ export const BookingModal = ({ route, onClose, onComplete }: { route: Route; onC
   const [paymentMethod, setPaymentMethod] = React.useState<'ONLINE' | 'ARRIVAL'>('ONLINE');
   const [loading, setLoading] = React.useState(false);
   const [phone, setPhone] = React.useState('63');
+  const [isIslandHopping, setIsIslandHopping] = React.useState(false);
+  const [tourDetails, setTourDetails] = React.useState<any>(null);
+  const [groupType, setGroupType] = React.useState<'SHARED' | 'PRIVATE'>('SHARED');
+  const [totalPrice, setTotalPrice] = React.useState(route.price);
+  const [seats, setSeats] = React.useState(1);
+
+  // Parse island hopping info from route.to if it's an island tour
+  React.useEffect(() => {
+    if (route.to && route.to.startsWith('ISLAND:')) {
+      setIsIslandHopping(true);
+      const parts = route.to.split(':');
+      const location = parts[1];
+      const tourName = parts[2];
+      const group = parts[3] as 'SHARED' | 'PRIVATE';
+      setGroupType(group);
+      
+      // Fetch tour details
+      const fetchTour = async () => {
+        const { data } = await supabase
+          .from('island_hopping_tours')
+          .select('*')
+          .eq('location', location)
+          .eq('tour_name', tourName)
+          .single();
+        if (data) {
+          setTourDetails(data);
+          if (group === 'SHARED') {
+            setTotalPrice(data.shared_price_per_person);
+          } else {
+            setTotalPrice(data.private_boat_flat_rate);
+          }
+        }
+      };
+      fetchTour();
+    }
+  }, [route]);
 
   const handleComplete = () => {
     setLoading(true);
     setTimeout(() => {
       onComplete(`PT-2026-${Math.floor(10000 + Math.random() * 90000)}`, phone);
     }, 2000);
+  };
+
+  const getDisplayPrice = () => {
+    if (isIslandHopping && tourDetails) {
+      if (groupType === 'SHARED') {
+        return `₱${tourDetails.shared_price_per_person} x ${seats} seats`;
+      } else {
+        return `₱${tourDetails.private_boat_flat_rate} (flat rate)`;
+      }
+    }
+    return `₱${route.price} x ${seats} seats`;
+  };
+
+  const getFinalTotal = () => {
+    if (isIslandHopping && tourDetails) {
+      if (groupType === 'SHARED') {
+        return totalPrice * seats + 50;
+      } else {
+        return totalPrice + 50;
+      }
+    }
+    return route.price * seats + 50;
   };
 
   return (
@@ -172,8 +331,15 @@ export const BookingModal = ({ route, onClose, onComplete }: { route: Route; onC
         </div>
 
         <header className="mb-12 text-center">
-          <h2 className="text-4xl text-white italic mb-2">{route.from} → {route.to}</h2>
-          <p className="ui-label text-muted">DEPARTING 01 APR 2026 · {route.departureTime}</p>
+          <h2 className="text-4xl text-white italic mb-2">
+            {isIslandHopping ? tourDetails?.tour_name || 'Island Hopping' : `${route.from} → ${route.to}`}
+          </h2>
+          <p className="ui-label text-muted">
+            {isIslandHopping ? `${tourDetails?.location || 'Port Barton'} · ${tourDetails?.duration || '09:00 AM - 04:00 PM'}` : `DEPARTING ${route.departureTime}`}
+          </p>
+          {isIslandHopping && tourDetails?.highlights && (
+            <p className="text-gold text-[10px] mt-2">{tourDetails.highlights.slice(0, 3).join(' · ')}</p>
+          )}
         </header>
 
         <AnimatePresence mode="wait">
@@ -202,6 +368,24 @@ export const BookingModal = ({ route, onClose, onComplete }: { route: Route; onC
                   placeholder="639123456789" 
                   className="w-full bg-surface border-b border-border px-4 py-4 text-white focus:border-gold focus:outline-none transition-colors" 
                 />
+              </div>
+              <div className="space-y-1">
+                <label className="ui-label text-muted">NUMBER OF PASSENGERS</label>
+                <div className="flex items-center bg-surface border border-border h-[58px]">
+                  <button
+                    onClick={() => setSeats(Math.max(1, seats - 1))}
+                    className="flex-grow flex items-center justify-center text-muted hover:text-white transition-colors"
+                  >
+                    <Minus size={16} />
+                  </button>
+                  <span className="w-10 text-center font-ui text-white">{seats}</span>
+                  <button
+                    onClick={() => setSeats(Math.min(tourDetails?.max_passengers || 10, seats + 1))}
+                    className="flex-grow flex items-center justify-center text-muted hover:text-white transition-colors"
+                  >
+                    <Plus size={16} />
+                  </button>
+                </div>
               </div>
               <div className="space-y-1">
                 <label className="ui-label text-muted">SPECIAL REQUESTS</label>
@@ -244,7 +428,7 @@ export const BookingModal = ({ route, onClose, onComplete }: { route: Route; onC
               <div className="bg-deep border border-border p-8 space-y-4">
                 <div className="flex justify-between items-center">
                   <span className="ui-label text-muted">BASE FARE</span>
-                  <span className="font-ui text-white">₱{route.price}</span>
+                  <span className="font-ui text-white">{getDisplayPrice()}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="ui-label text-muted">SERVICE FEE</span>
@@ -253,9 +437,15 @@ export const BookingModal = ({ route, onClose, onComplete }: { route: Route; onC
                 <div className="h-[1px] bg-border my-4" />
                 <div className="flex justify-between items-end">
                   <span className="ui-label text-gold">TOTAL AMOUNT</span>
-                  <span className="font-display text-4xl text-gold">₱{route.price + 50}</span>
+                  <span className="font-display text-4xl text-gold">₱{getFinalTotal().toLocaleString()}</span>
                 </div>
               </div>
+
+              {isIslandHopping && tourDetails?.inclusions && (
+                <div className="text-center">
+                  <p className="text-muted text-[8px] tracking-wider">✨ Includes: {tourDetails.inclusions.join(' · ')} ✨</p>
+                </div>
+              )}
 
               <div className="flex gap-4">
                 <button
@@ -284,7 +474,7 @@ export const BookingModal = ({ route, onClose, onComplete }: { route: Route; onC
       <div className="fixed bottom-0 left-0 w-full bg-deep border-t border-border p-6 flex justify-between items-center">
         <div className="flex flex-col">
           <span className="ui-label text-muted">TOTAL</span>
-          <span className="font-ui text-gold text-xl">₱{route.price + 50}</span>
+          <span className="font-ui text-gold text-xl">₱{getFinalTotal().toLocaleString()}</span>
         </div>
         <div className="flex items-center gap-2">
           <Clock size={16} className="text-muted" />
