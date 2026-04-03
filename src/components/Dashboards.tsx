@@ -863,13 +863,30 @@ const PERMIT_TYPES = [
 const OperatorProfileSettings = ({ operator, onUpdate }: { operator: Operator, onUpdate: (op: any) => void }) => {
   const [formData, setFormData] = React.useState(operator);
   const [isSaving, setIsSaving] = React.useState(false);
-  const [vehiclePhotos, setVehiclePhotos] = React.useState<string[]>(operator.vehicle_photos || []);
-  const [permits, setPermits] = React.useState<OperatorPermit[]>(operator.permits || []);
+  const [vehiclePhotos, setVehiclePhotos] = React.useState<string[]>([]);
+  const [permits, setPermits] = React.useState<OperatorPermit[]>([]);
   const [uploadingPhotos, setUploadingPhotos] = React.useState(false);
   const [uploadingPermit, setUploadingPermit] = React.useState(false);
   const [selectedPermitType, setSelectedPermitType] = React.useState('MAYORS_PERMIT');
   const photoInputRef = React.useRef<HTMLInputElement>(null);
   const permitInputRef = React.useRef<HTMLInputElement>(null);
+
+  // Fetch fresh data from DB on mount so photos survive refresh
+  React.useEffect(() => {
+    const fetchFresh = async () => {
+      const { data } = await supabase
+        .from('operators')
+        .select('vehicle_photos, permits, name, phone, whatsapp, email, description, location')
+        .eq('id', operator.id)
+        .single();
+      if (data) {
+        setVehiclePhotos(data.vehicle_photos || []);
+        setPermits(data.permits || []);
+        setFormData(prev => ({ ...prev, ...data }));
+      }
+    };
+    if (operator?.id) fetchFresh();
+  }, [operator.id]);
 
   // Compress image before upload
   const compressImage = (file: File): Promise<Blob> => {
