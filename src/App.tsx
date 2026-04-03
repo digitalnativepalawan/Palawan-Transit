@@ -129,7 +129,7 @@ export default function App() {
     }
   };
 
-  const handleSearch = (from: string, to: string, date: string, seats: number) => {
+  const handleSearch = (from: string, to: string, date: string, seats: number, searchType?: string, groupType?: string) => {
     setSearchParams({ from, to, date, seats });
     setPage('RESULTS');
     setActiveFilter('ALL');
