@@ -296,9 +296,9 @@ export const BookingModal = ({ route, onClose, onComplete }: { route: Route; onC
   const getFinalTotal = () => {
     if (isIslandHopping && tourDetails) {
       if (groupType === 'SHARED') {
-        return totalPrice * seats + 50;
+        return tourDetails.shared_price_per_person * seats + 50;
       } else {
-        return totalPrice + 50;
+        return tourDetails.private_boat_flat_rate + 50;
       }
     }
     return route.price * seats + 50;
@@ -369,6 +369,39 @@ export const BookingModal = ({ route, onClose, onComplete }: { route: Route; onC
                   className="w-full bg-surface border-b border-border px-4 py-4 text-white focus:border-gold focus:outline-none transition-colors" 
                 />
               </div>
+              {isIslandHopping && (
+                <div className="space-y-1">
+                  <label className="ui-label text-muted">BOOKING TYPE</label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      onClick={() => setGroupType('SHARED')}
+                      className={`py-3 border transition-all flex items-center justify-center gap-2 ${groupType === 'SHARED' ? 'bg-gold text-ink border-gold' : 'bg-surface border-border text-white hover:border-gold'}`}
+                    >
+                      <UsersIcon size={16} />
+                      <span className="ui-label text-[10px]">JOIN GROUP (SHARED)</span>
+                    </button>
+                    <button
+                      onClick={() => setGroupType('PRIVATE')}
+                      className={`py-3 border transition-all flex items-center justify-center gap-2 ${groupType === 'PRIVATE' ? 'bg-gold text-ink border-gold' : 'bg-surface border-border text-white hover:border-gold'}`}
+                    >
+                      <Ship size={16} />
+                      <span className="ui-label text-[10px]">PRIVATE BOAT</span>
+                    </button>
+                  </div>
+                  {tourDetails && (
+                    <div className="bg-surface/30 p-3 rounded text-center mt-2">
+                      <p className="text-gold font-ui text-sm">
+                        {groupType === 'SHARED'
+                          ? `₱${tourDetails.shared_price_per_person}/person`
+                          : `₱${tourDetails.private_boat_flat_rate} flat rate`}
+                      </p>
+                      {groupType === 'PRIVATE' && (
+                        <p className="text-muted text-[8px] mt-1">Up to {tourDetails.max_passengers} passengers</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
               <div className="space-y-1">
                 <label className="ui-label text-muted">NUMBER OF PASSENGERS</label>
                 <div className="flex items-center bg-surface border border-border h-[58px]">
