@@ -25,6 +25,20 @@ export interface Route {
   dropoffPoint?: string;
 }
 
+export interface IslandHoppingTour {
+  id: string;
+  location: string;
+  tour_name: string;
+  shared_price_per_person: number;
+  private_boat_flat_rate: number;
+  max_passengers: number;
+  duration: string;
+  departure_point: string;
+  inclusions: string[];
+  highlights: string[];
+  is_active: boolean;
+}
+
 export interface OperatorPermit {
   type: string;
   label: string;
@@ -61,10 +75,14 @@ export interface Booking {
   referenceCode: string;
   operatorId?: string;
   createdAt: string;
+  isIslandHopping?: boolean;
+  tourId?: string;
+  groupType?: 'SHARED' | 'PRIVATE';
 }
 
 export type SearchType = 'TRANSPORT' | 'ISLAND_HOPPING';
 
 export const CITIES = ['Puerto Princesa', 'El Nido', 'Coron', 'Port Barton', 'San Vicente'];
+export const ISLAND_LOCATIONS = ['Port Barton', 'San Vicente', 'El Nido'];
 export const TOURS = ['Island Hop Tour A', 'Island Hop Tour B', 'Island Hop Tour C', 'Underground River Tour', 'Firefly Watching'];
 export const DESTINATIONS = [...CITIES, ...TOURS];
