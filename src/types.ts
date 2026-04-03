@@ -25,6 +25,14 @@ export interface Route {
   dropoffPoint?: string;
 }
 
+export interface OperatorPermit {
+  type: string;
+  label: string;
+  url: string;
+  file_name: string;
+  uploaded_at: string;
+}
+
 export interface Operator {
   id: string;
   name: string;
@@ -32,11 +40,12 @@ export interface Operator {
   type: 'VAN' | 'BOAT' | 'PRIVATE';
   location: string;
   rating: number;
-  permits?: string[];
   whatsapp?: string;
   email?: string;
-  images?: string[];
   description?: string;
+  images?: string[];
+  vehicle_photos?: string[];
+  permits?: OperatorPermit[];
 }
 
 export interface Booking {
