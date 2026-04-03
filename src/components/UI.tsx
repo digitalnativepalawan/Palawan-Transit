@@ -1,9 +1,11 @@
-return (
-  <a
-    href={href || '#'}
-    onClick={onClose}
-    className="block text-4xl text-white italic hover:text-gold transition-colors"
-  >
-    {label}
-  </a>
-);
+import React from 'react';
+
+const UI = () => {
+    return (
+        <div>
+            <h1>Hello, World!</h1>
+        </div>
+    );
+};
+
+export default UI;
