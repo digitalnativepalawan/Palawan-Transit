@@ -21,21 +21,19 @@ export const OperatorProfileView = ({ operator, routes, onBack, onViewRoute }: O
   const [vehiclePhotos, setVehiclePhotos] = useState<string[]>([]);
   const [permits, setPermits] = useState<OperatorPermit[]>([]);
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
-  const [operatorDetails, setOperatorDetails] = useState<any>(null);
-  
+
   const operatorRoutes = routes.filter(r => r.operatorId === operator.id || r.operator === operator.name);
   const ModeIcon = operator.type === 'VAN' ? Truck : operator.type === 'BOAT' ? Anchor : Waves;
 
   useEffect(() => {
     const fetchOperatorDetails = async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('operators')
-        .select('vehicle_photos, permits, years_experience, operating_hours')
+        .select('vehicle_photos, permits')
         .eq('id', operator.id)
         .single();
-      
+
       if (data) {
-        setOperatorDetails(data);
         setVehiclePhotos(data.vehicle_photos || []);
         setPermits(data.permits || []);
       }
@@ -112,16 +110,16 @@ export const OperatorProfileView = ({ operator, routes, onBack, onViewRoute }: O
                 <CheckCircle size={14} />
                 <span>Verified Operator</span>
               </div>
-              {operatorDetails?.years_experience > 0 && (
-                <div className="flex items-center gap-1 text-xs text-gold">
-                  <Clock size={14} />
-                  <span>{operatorDetails.years_experience} yrs experience</span>
-                </div>
-              )}
               {permits.length > 0 && (
                 <div className="flex items-center gap-1 text-xs text-seafoam">
                   <Shield size={14} />
                   <span>{permits.length} permit{permits.length !== 1 ? 's' : ''} on file</span>
+                </div>
+              )}
+              {vehiclePhotos.length > 0 && (
+                <div className="flex items-center gap-1 text-xs text-gold">
+                  <Camera size={14} />
+                  <span>{vehiclePhotos.length} vehicle photo{vehiclePhotos.length !== 1 ? 's' : ''}</span>
                 </div>
               )}
             </div>
@@ -235,22 +233,9 @@ export const OperatorProfileView = ({ operator, routes, onBack, onViewRoute }: O
                 )}
               </>
             ) : (
-              <div className="grid grid-cols-2 gap-4">
-                {(operator.images && operator.images.length > 0 ? operator.images : [
-                  "https://picsum.photos/seed/van1/400/300",
-                  "https://picsum.photos/seed/van2/400/300",
-                  "https://picsum.photos/seed/van3/400/300",
-                  "https://picsum.photos/seed/van4/400/300"
-                ]).slice(0, 4).map((img, i) => (
-                  <div key={i} className="aspect-square bg-surface border border-border overflow-hidden group">
-                    <img
-                      src={img}
-                      alt={`Fleet ${i}`}
-                      className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500 scale-110 group-hover:scale-100"
-                      referrerPolicy="no-referrer"
-                    />
-                  </div>
-                ))}
+              <div className="border border-dashed border-white/10 py-16 text-center">
+                <Camera size={32} className="text-muted mx-auto mb-3" />
+                <p className="ui-label text-[10px] text-muted">NO VEHICLE PHOTOS YET</p>
               </div>
             )}
           </div>
