@@ -29,23 +29,19 @@ export default function App() {
   const [routesPage, setRoutesPage] = React.useState(1);
   const ROUTES_PER_PAGE = 6;
   
-  // Real data from Supabase
   const [routes, setRoutes] = React.useState<Route[]>([]);
   const [operators, setOperators] = React.useState<Operator[]>([]);
   const [bookings, setBookings] = React.useState<Booking[]>([]);
   const [loading, setLoading] = React.useState(true);
 
-  // Generate random 6-digit PIN
   const generatePin = () => {
     return Math.floor(100000 + Math.random() * 900000).toString();
   };
 
-  // Fetch data from Supabase on load
   React.useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       
-      // Fetch operators
       const { data: operatorsData, error: operatorsError } = await supabase
         .from('operators')
         .select('*');
@@ -54,7 +50,6 @@ export default function App() {
         setOperators(operatorsData as Operator[]);
       }
       
-      // Fetch routes with operator data
       const { data: routesData, error: routesError } = await supabase
         .from('routes')
         .select(`
@@ -63,7 +58,6 @@ export default function App() {
         `);
       
       if (!routesError && routesData) {
-        // Map database fields to what the frontend expects
         const mappedRoutes = routesData.map((route: any) => ({
           ...route,
           id: route.id,
@@ -87,7 +81,6 @@ export default function App() {
         setRoutes(mappedRoutes);
       }
       
-      // Fetch bookings
       const { data: bookingsData, error: bookingsError } = await supabase
         .from('bookings')
         .select('*')
@@ -125,7 +118,7 @@ export default function App() {
       setPasskeyError(false);
     } else if (normalizedPasskey === "OP123") {
       setUserRole('OPERATOR');
-      setCurrentOperatorId(operators[0]?.id || null);
+      setCurrentOperatorId('cb18ed48-924e-4132-b110-bb88811221eb');
       setPage('OPERATOR_PORTAL');
       setShowPasskeyModal(false);
       setPasskey('');
@@ -159,7 +152,6 @@ export default function App() {
   };
 
   const handleBook = (route: Route) => {
-    // If searchParams is missing but we have a viewingRoute, create default searchParams
     if (!searchParams && viewingRoute) {
       const today = new Date().toISOString().split('T')[0];
       setSearchParams({
@@ -173,16 +165,13 @@ export default function App() {
   };
 
   const handleBookingComplete = async (ref: string, phone: string) => {
-    // Get the current selected route
     const currentRoute = selectedRoute;
     
     if (!currentRoute) {
-      console.error('No route selected');
       alert('Booking error: No route selected. Please go back and try again.');
       return;
     }
     
-    // Use searchParams if available, otherwise create defaults from the route
     const today = new Date().toISOString().split('T')[0];
     const currentParams = searchParams || {
       from: currentRoute.from,
@@ -191,18 +180,15 @@ export default function App() {
       seats: 1
     };
 
-    // Generate a simple name from phone number
     const customerName = `Guest ${phone.slice(-4)}`;
-    
-    // Generate a 6-digit PIN code
     const pinCode = generatePin();
 
     const newBooking = {
       route_id: currentRoute.id,
-      operator_id: currentRoute.operator_id,
+      operator_id: currentRoute.operatorId,
       reference_code: ref,
       pin_code: pinCode,
-      status: currentRoute.booking_type === 'INSTANT' ? 'CONFIRMED' : 'PENDING',
+      status: currentRoute.bookingType === 'INSTANT' ? 'CONFIRMED' : 'PENDING',
       date: currentParams.date,
       seats: currentParams.seats,
       total_price: currentRoute.price * currentParams.seats,
@@ -211,8 +197,6 @@ export default function App() {
       customer_phone: phone,
     };
 
-    console.log('Creating booking:', newBooking);
-
     const { data, error } = await supabase
       .from('bookings')
       .insert([newBooking])
@@ -220,7 +204,6 @@ export default function App() {
       .single();
 
     if (error) {
-      console.error('Booking error:', error);
       alert(`Booking failed: ${error.message}`);
       return;
     }
@@ -365,7 +348,8 @@ export default function App() {
         rating: op.rating,
         description: op.description,
         images: op.images,
-        permits: op.permits
+        permits: op.permits,
+        vehicle_photos: op.vehicle_photos,
       })
       .eq('id', op.id);
     
@@ -491,7 +475,6 @@ export default function App() {
                     Shuttles. Bangkas. All in one booking.
                   </p>
                 </motion.div>
-
                 <SearchWidget onSearch={handleSearch} />
               </div>
             </section>
@@ -508,7 +491,7 @@ export default function App() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                {filteredRoutes.slice(0, 3).map((route, i) => (
+                {routes.slice(0, 3).map((route, i) => (
                   <motion.div
                     key={route.id}
                     initial={{ opacity: 0, y: 20 }}
@@ -619,36 +602,21 @@ export default function App() {
                 <p className="ui-label text-muted mt-4 tracking-[0.2em]">{filteredRoutes.length} {searchParams?.to.includes('Tour') ? 'TOURS' : 'ROUTES'} FOUND · {searchParams?.date || 'TODAY'}</p>
               </div>
               <div className="flex flex-wrap gap-4 w-full md:w-auto">
-                <button 
-                  onClick={() => setActiveFilter('ALL')}
-                  className={`flex-1 md:flex-none flex items-center justify-center gap-2 border px-6 py-3 ui-label transition-colors ${activeFilter === 'ALL' ? 'bg-gold text-ink border-gold' : 'bg-surface border-border text-white hover:border-gold'}`}
-                >
-                  ALL
-                </button>
-                <button 
-                  onClick={() => setActiveFilter('SHARED')}
-                  className={`flex-1 md:flex-none flex items-center justify-center gap-2 border px-6 py-3 ui-label transition-colors ${activeFilter === 'SHARED' ? 'bg-gold text-ink border-gold' : 'bg-surface border-border text-white hover:border-gold'}`}
-                >
-                  <Truck size={16} /> SHARED
-                </button>
-                <button 
-                  onClick={() => setActiveFilter('PRIVATE')}
-                  className={`flex-1 md:flex-none flex items-center justify-center gap-2 border px-6 py-3 ui-label transition-colors ${activeFilter === 'PRIVATE' ? 'bg-gold text-ink border-gold' : 'bg-surface border-border text-white hover:border-gold'}`}
-                >
-                  <Truck size={16} /> PRIVATE
-                </button>
-                <button 
-                  onClick={() => setActiveFilter('4X4')}
-                  className={`flex-1 md:flex-none flex items-center justify-center gap-2 border px-6 py-3 ui-label transition-colors ${activeFilter === '4X4' ? 'bg-gold text-ink border-gold' : 'bg-surface border-border text-white hover:border-gold'}`}
-                >
-                  <Truck size={16} /> 4X4
-                </button>
-                <button 
-                  onClick={() => setActiveFilter('BOAT')}
-                  className={`flex-1 md:flex-none flex items-center justify-center gap-2 border px-6 py-3 ui-label transition-colors ${activeFilter === 'BOAT' ? 'bg-gold text-ink border-gold' : 'bg-surface border-border text-white hover:border-gold'}`}
-                >
-                  <Anchor size={16} /> BANGKAS
-                </button>
+                {[
+                  { key: 'ALL', label: 'ALL', icon: null },
+                  { key: 'SHARED', label: 'SHARED', icon: <Truck size={16} /> },
+                  { key: 'PRIVATE', label: 'PRIVATE', icon: <Truck size={16} /> },
+                  { key: '4X4', label: '4X4', icon: <Truck size={16} /> },
+                  { key: 'BOAT', label: 'BANGKAS', icon: <Anchor size={16} /> },
+                ].map(({ key, label, icon }) => (
+                  <button
+                    key={key}
+                    onClick={() => setActiveFilter(key as any)}
+                    className={`flex-1 md:flex-none flex items-center justify-center gap-2 border px-6 py-3 ui-label transition-colors ${activeFilter === key ? 'bg-gold text-ink border-gold' : 'bg-surface border-border text-white hover:border-gold'}`}
+                  >
+                    {icon}{label}
+                  </button>
+                ))}
               </div>
             </div>
 
@@ -742,7 +710,7 @@ export default function App() {
                     if (booking) {
                       const op = operators.find(o => o.id === booking.operator_id);
                       if (op && op.whatsapp) {
-                        const message = `New Booking! Reference: ${booking.reference_code} | PIN: ${bookingPin} | From: ${currentRoute?.from} To: ${currentRoute?.to} | Passengers: ${searchParams?.seats || 1}`;
+                        const message = `New Booking! Reference: ${booking.reference_code} | PIN: ${bookingPin} | Passengers: ${searchParams?.seats || 1}`;
                         window.open(`https://wa.me/${op.whatsapp}?text=${encodeURIComponent(message)}`, '_blank');
                       }
                     }
