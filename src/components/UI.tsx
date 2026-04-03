@@ -134,7 +134,7 @@ const MyBookingsModal = ({ onClose }: { onClose: () => void }) => {
           ))}
         </div>
         <div className="p-6 border-t border-border bg-surface/30">
-          <p className="ui-label text-[9px] text-muted text-center tracking-[0.1em]">Need help? Contact us at hello@palawan.transit</p>
+          <p className="ui-label text-[9px] text-muted text-center tracking-[0.1em]">Need help? Contact us at info@palawancollective.com</p>
         </div>
       </motion.div>
     </motion.div>
@@ -255,7 +255,7 @@ export const Footer = () => (
             <span className="font-display text-lg tracking-[0.3em] text-white">PALAWAN</span>
             <span className="font-ui text-[10px] text-gold ml-2">.TRANSIT</span>
           </div>
-          <p className="text-muted text-sm leading-relaxed font-body italic">"The visual weight of a dive magazine, the tactility of weathered nautical charts."</p>
+          <p className="text-muted text-sm leading-relaxed font-body italic">"Your island journey starts here."</p>
         </div>
         <div className="flex flex-col items-center md:items-start">
           <span className="ui-label text-muted mb-4">Part of the Palawan Collective</span>
@@ -267,7 +267,7 @@ export const Footer = () => (
         </div>
         <div className="flex flex-col items-center md:items-end">
           <span className="ui-label text-muted mb-4">Support</span>
-          <p className="text-white ui-label">hello@palawan.transit</p>
+          <p className="text-white ui-label">info@palawancollective.com</p>
         </div>
       </div>
       <div className="border-t border-border/30 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
