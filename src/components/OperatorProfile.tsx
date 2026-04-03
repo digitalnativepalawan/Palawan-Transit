@@ -54,39 +54,41 @@ export const OperatorProfileView = ({ operator, routes, onBack, onViewRoute }: O
     >
       {/* Image Modal */}
       {selectedPhoto && (
-        <div 
+        <div
           className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-4"
           onClick={() => setSelectedPhoto(null)}
         >
-          <button 
+          <button
             onClick={() => setSelectedPhoto(null)}
             className="absolute top-6 right-6 text-white hover:text-gold transition-colors"
           >
             <X size={32} />
           </button>
-          <img 
-            src={selectedPhoto} 
-            alt="Vehicle" 
+          <img
+            src={selectedPhoto}
+            alt="Vehicle"
             className="max-w-full max-h-[90vh] object-contain"
           />
         </div>
       )}
 
       {/* Navigation */}
-      <button 
-        onClick={onBack} 
+      <button
+        onClick={onBack}
         className="ui-label text-muted hover:text-gold transition-colors flex items-center gap-2 mb-8 group"
       >
-        <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" /> 
+        <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
         BACK TO ROUTES
       </button>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-        {/* Left Column: Profile Info */}
+
+        {/* Left Column */}
         <div className="lg:col-span-1 space-y-8">
           <div className="bg-deep border border-border p-8 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-gold/5 -mr-16 -mt-16 rounded-full blur-3xl" />
-            
+
+            {/* Header */}
             <div className="flex items-center gap-4 mb-6">
               <div className="w-16 h-16 bg-surface border border-gold flex items-center justify-center">
                 <ModeIcon size={32} className="text-gold" />
@@ -104,7 +106,7 @@ export const OperatorProfileView = ({ operator, routes, onBack, onViewRoute }: O
               {operator.description || "A premier transportation provider in Palawan, committed to safety, reliability, and exceptional local service."}
             </p>
 
-            {/* Trust badges */}
+            {/* Trust Badges */}
             <div className="flex flex-wrap gap-3 mb-6">
               <div className="flex items-center gap-1 text-xs text-green-500">
                 <CheckCircle size={14} />
@@ -124,6 +126,7 @@ export const OperatorProfileView = ({ operator, routes, onBack, onViewRoute }: O
               )}
             </div>
 
+            {/* Contact */}
             <div className="space-y-3 border-t border-border pt-6">
               <div className="flex items-center gap-3 text-white/80">
                 <MapPin size={16} className="text-gold" />
@@ -140,27 +143,25 @@ export const OperatorProfileView = ({ operator, routes, onBack, onViewRoute }: O
                 </div>
               )}
               {operator.whatsapp && (
-                <a 
-                  href={`https://wa.me/${operator.whatsapp.replace(/[^0-9]/g, '')}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex items-center gap-3 text-gold hover:text-white transition-colors group"
+                <button
+                  onClick={() => window.open(`https://wa.me/${operator.whatsapp!.replace(/[^0-9]/g, '')}`, '_blank')}
+                  className="flex items-center gap-3 text-gold hover:text-white transition-colors group w-full"
                 >
                   <Phone size={16} />
                   <span className="ui-label text-[10px] tracking-wider">WHATSAPP CONNECT</span>
                   <ExternalLink size={12} className="opacity-0 group-hover:opacity-100 transition-opacity" />
-                </a>
+                </button>
               )}
             </div>
 
             <DiamondDivider />
 
-            {/* Permits & Licenses */}
+            {/* Permits */}
             <div className="space-y-3">
               <h3 className="ui-label text-gold text-[10px] tracking-[0.2em] mb-4">PERMITS & LICENSES</h3>
               {permits.length > 0 ? (
                 permits.map((permit, i) => (
-                  <div key={i} className="flex items-center justify-between group">
+                  <div key={i} className="flex items-center justify-between group py-1">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 border border-white/10 flex items-center justify-center flex-shrink-0 overflow-hidden">
                         {isImage(permit.url)
@@ -173,14 +174,12 @@ export const OperatorProfileView = ({ operator, routes, onBack, onViewRoute }: O
                         <p className="ui-label text-[8px] text-muted">{new Date(permit.uploaded_at).toLocaleDateString()}</p>
                       </div>
                     </div>
-                    
-                      href={permit.url}
-                      target="_blank"
-                      rel="noreferrer"
+                    <button
+                      onClick={() => window.open(permit.url, '_blank')}
                       className="p-1 text-muted hover:text-gold transition-colors opacity-0 group-hover:opacity-100"
                     >
                       <ExternalLink size={12} />
-                    </a>
+                    </button>
                   </div>
                 ))
               ) : (
@@ -192,7 +191,7 @@ export const OperatorProfileView = ({ operator, routes, onBack, onViewRoute }: O
             </div>
           </div>
 
-          {/* Vehicle & Boat Gallery */}
+          {/* Vehicle Gallery */}
           <div className="space-y-4">
             <div className="flex justify-between items-center">
               <h3 className="ui-label text-gold text-[10px] tracking-[0.2em]">VEHICLE & BOAT GALLERY</h3>
@@ -204,14 +203,14 @@ export const OperatorProfileView = ({ operator, routes, onBack, onViewRoute }: O
               <>
                 <div className="grid grid-cols-2 gap-3">
                   {vehiclePhotos.slice(0, 4).map((img, i) => (
-                    <div 
-                      key={i} 
+                    <div
+                      key={i}
                       className="aspect-square bg-surface border border-border overflow-hidden cursor-pointer hover:border-gold transition-all"
                       onClick={() => setSelectedPhoto(img)}
                     >
-                      <img 
-                        src={img} 
-                        alt={`Vehicle ${i + 1}`} 
+                      <img
+                        src={img}
+                        alt={`Vehicle ${i + 1}`}
                         className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
                       />
                     </div>
@@ -220,14 +219,14 @@ export const OperatorProfileView = ({ operator, routes, onBack, onViewRoute }: O
                 {vehiclePhotos.length > 4 && (
                   <div className="grid grid-cols-3 gap-3">
                     {vehiclePhotos.slice(4).map((img, i) => (
-                      <div 
-                        key={i} 
+                      <div
+                        key={i}
                         className="aspect-square bg-surface border border-border overflow-hidden cursor-pointer hover:border-gold transition-all"
                         onClick={() => setSelectedPhoto(img)}
                       >
-                        <img 
-                          src={img} 
-                          alt={`Vehicle ${i + 5}`} 
+                        <img
+                          src={img}
+                          alt={`Vehicle ${i + 5}`}
                           className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
                         />
                       </div>
@@ -244,9 +243,9 @@ export const OperatorProfileView = ({ operator, routes, onBack, onViewRoute }: O
                   "https://picsum.photos/seed/van4/400/300"
                 ]).slice(0, 4).map((img, i) => (
                   <div key={i} className="aspect-square bg-surface border border-border overflow-hidden group">
-                    <img 
-                      src={img} 
-                      alt={`Fleet ${i}`} 
+                    <img
+                      src={img}
+                      alt={`Fleet ${i}`}
                       className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500 scale-110 group-hover:scale-100"
                       referrerPolicy="no-referrer"
                     />
