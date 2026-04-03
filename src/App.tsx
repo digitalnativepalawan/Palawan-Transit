@@ -369,8 +369,15 @@ export default function App() {
     }
   };
 
+  const isIslandSearch = searchParams?.to?.startsWith('ISLAND:');
+  
   const filteredRoutes = routes.filter(r => {
     if (!searchParams) return true;
+    
+    if (isIslandSearch) {
+      return r.mode === 'ISLAND_HOPPING';
+    }
+    
     const matchesSearch = r.from === searchParams.from && r.to === searchParams.to;
     if (!matchesSearch) return false;
 
@@ -601,23 +608,27 @@ export default function App() {
                 )}
                 <p className="ui-label text-muted mt-4 tracking-[0.2em]">{filteredRoutes.length} {searchParams?.to.includes('Tour') ? 'TOURS' : 'ROUTES'} FOUND · {searchParams?.date || 'TODAY'}</p>
               </div>
-              <div className="flex flex-wrap gap-4 w-full md:w-auto">
-                {[
-                  { key: 'ALL', label: 'ALL', icon: null },
-                  { key: 'SHARED', label: 'SHARED', icon: <Truck size={16} /> },
-                  { key: 'PRIVATE', label: 'PRIVATE', icon: <Truck size={16} /> },
-                  { key: '4X4', label: '4X4', icon: <Truck size={16} /> },
-                  { key: 'BOAT', label: 'BANGKAS', icon: <Anchor size={16} /> },
-                ].map(({ key, label, icon }) => (
-                  <button
-                    key={key}
-                    onClick={() => setActiveFilter(key as any)}
-                    className={`flex-1 md:flex-none flex items-center justify-center gap-2 border px-6 py-3 ui-label transition-colors ${activeFilter === key ? 'bg-gold text-ink border-gold' : 'bg-surface border-border text-white hover:border-gold'}`}
-                  >
-                    {icon}{label}
-                  </button>
-                ))}
-              </div>
+              
+              {/* Only show filter buttons for transport, not island hopping */}
+              {!isIslandSearch && (
+                <div className="flex flex-wrap gap-4 w-full md:w-auto">
+                  {[
+                    { key: 'ALL', label: 'ALL', icon: null },
+                    { key: 'SHARED', label: 'SHARED', icon: <Truck size={16} /> },
+                    { key: 'PRIVATE', label: 'PRIVATE', icon: <Truck size={16} /> },
+                    { key: '4X4', label: '4X4', icon: <Truck size={16} /> },
+                    { key: 'BOAT', label: 'BANGKAS', icon: <Anchor size={16} /> },
+                  ].map(({ key, label, icon }) => (
+                    <button
+                      key={key}
+                      onClick={() => setActiveFilter(key as any)}
+                      className={`flex-1 md:flex-none flex items-center justify-center gap-2 border px-6 py-3 ui-label transition-colors ${activeFilter === key ? 'bg-gold text-ink border-gold' : 'bg-surface border-border text-white hover:border-gold'}`}
+                    >
+                      {icon}{label}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -639,7 +650,7 @@ export default function App() {
               )}
             </div>
 
-            {hasMoreRoutes && (
+            {hasMoreRoutes && !isIslandSearch && (
               <div className="mt-16 text-center">
                 <button 
                   onClick={() => setRoutesPage(prev => prev + 1)}
