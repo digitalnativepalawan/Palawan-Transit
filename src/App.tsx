@@ -318,6 +318,20 @@ export default function App() {
   };
 
   const handleAddRoute = async (route: any) => {
+    // Check for duplicates before inserting
+    const { data: existing } = await supabase
+      .from('routes')
+      .select('id')
+      .eq('from_location', route.from)
+      .eq('to_location', route.to)
+      .eq('operator_id', route.operatorId)
+      .eq('departure_time', route.departureTime);
+    
+    if (existing && existing.length > 0) {
+      alert('This route already exists. Please edit the existing one instead.');
+      return;
+    }
+
     const { data, error } = await supabase
       .from('routes')
       .insert([{
