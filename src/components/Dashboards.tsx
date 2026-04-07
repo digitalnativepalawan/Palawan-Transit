@@ -335,14 +335,83 @@ const AdminBookingsView = ({ bookings, onUpdateStatus }: { bookings: Booking[]; 
 // ============================================
 // DASHBOARD SUMMARY
 // ============================================
-const DashboardSummary = ({ bookings, routes, isOperatorPortal }: { bookings: Booking[]; routes: Route[]; isOperatorPortal?: boolean }) => (
+// ============================================
+// OPERATOR DAILY VIEW — TODAY'S BOOKINGS + MONTH SUMMARY
+// ============================================
+const OperatorDashboardView = ({ bookings, routes }: { bookings: Booking[]; routes: Route[] }) => {
+  const today = new Date().toISOString().split('T')[0];
+  const todayBookings = bookings.filter(b => b.date === today);
+  const thisMonth = new Date().toISOString().slice(0, 7);
+  const monthBookings = bookings.filter(b => (b.date || '').startsWith(thisMonth));
+
+  return (
+    <div className="space-y-6">
+      {/* TODAY'S BOOKINGS */}
+      <div>
+        <h3 className="ui-label text-[9px] text-gold tracking-[0.2em] mb-4">TODAY'S BOOKINGS — {new Date().toLocaleDateString('en-PH', { weekday: 'short', month: 'short', day: 'numeric' })}</h3>
+        {todayBookings.length === 0 && (
+          <div className="bg-[#081221] border border-white/10 rounded-xl p-8 text-center">
+            <Calendar size={32} className="text-muted mx-auto mb-3" />
+            <p className="ui-label text-[10px] text-muted tracking-[0.2em]">NO BOOKINGS FOR TODAY</p>
+          </div>
+        )}
+        <div className="space-y-3">
+          {todayBookings.map(b => {
+            const route = routes.find(r => r.id === (b as any).route_id || r.id === (b as any).routeId);
+            const statusColor = (s: string) => {
+              if (s === 'PENDING') return 'bg-gold/10 text-gold border border-gold/30';
+              if (s === 'ACCEPTED' || s === 'CONFIRMED') return 'bg-emerald-400/10 text-emerald-400 border border-emerald-400/30';
+              return 'bg-muted/10 text-muted border';
+            };
+            return (
+              <div key={b.id} className="bg-[#081221] border border-white/10 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-white font-semibold text-sm truncate">{(b as any).customer_name || b.customerName || 'Guest'}</p>
+                  <p className="ui-label text-[8px] text-muted mt-0.5">{route ? `${route.from} → ${route.to}` : 'Unknown route'}</p>
+                </div>
+                <div className="flex items-center gap-3 shrink-0">
+                  <div className="text-right">
+                    <p className="ui-label text-[7px] text-muted">PIN</p>
+                    <p className="font-mono text-xs text-gold tracking-wider">{(b as any).pin_code || '—'}</p>
+                  </div>
+                  <span className={`ui-label text-[8px] px-2 py-1 rounded-full tracking-wider ${statusColor((b as any).status || 'PENDING')}`}>{(b as any).status || 'PENDING'}</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* THIS MONTH SUMMARY */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="bg-[#081221] border border-white/10 p-4 rounded-xl text-center">
+          <p className="ui-label text-[7px] text-muted tracking-[0.2em]">THIS MONTH</p>
+          <p className="text-xl text-white font-display mt-1">{monthBookings.length}</p>
+        </div>
+        <div className="bg-[#081221] border border-white/10 p-4 rounded-xl text-center">
+          <p className="ui-label text-[7px] text-muted tracking-[0.2em]">PENDING</p>
+          <p className="text-xl text-gold font-display mt-1">{monthBookings.filter(b => b.status === 'PENDING').length}</p>
+        </div>
+        <div className="bg-[#081221] border border-white/10 p-4 rounded-xl text-center">
+          <p className="ui-label text-[7px] text-muted tracking-[0.2em]">CONFIRMED</p>
+          <p className="text-xl text-emerald-400 font-display mt-1">{monthBookings.filter(b => b.status === 'CONFIRMED' || b.status === 'ACCEPTED').length}</p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ============================================
+// ADMIN DASHBOARD SUMMARY (3 CARD VIEW)
+// ============================================
+const DashboardSummary = ({ bookings, routes }: { bookings: Booking[]; routes: Route[] }) => (
   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
     <div className="bg-[#081221] border border-white/10 p-5">
-      <p className="ui-label text-[9px] text-muted tracking-[0.2em]">{isOperatorPortal ? 'MY BOOKINGS' : 'TOTAL BOOKINGS'}</p>
+      <p className="ui-label text-[9px] text-muted tracking-[0.2em]">TOTAL BOOKINGS</p>
       <p className="text-2xl text-white font-display mt-1">{bookings.length}</p>
     </div>
     <div className="bg-[#081221] border border-white/10 p-5">
-      <p className="ui-label text-[9px] text-muted tracking-[0.2em]">{isOperatorPortal ? 'MY ROUTES' : 'ACTIVE ROUTES'}</p>
+      <p className="ui-label text-[9px] text-muted tracking-[0.2em]">ACTIVE ROUTES</p>
       <p className="text-2xl text-gold font-display mt-1">{routes.length}</p>
     </div>
     <div className="bg-[#081221] border border-white/10 p-5">
@@ -504,7 +573,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const renderContent = () => {
     switch (activeTab) {
       case 'DASHBOARD':
-        return <DashboardSummary bookings={filteredBookings} routes={filteredRoutes} isOperatorPortal={isOperatorPortal} />;
+        return isOperatorPortal ? (
+          <OperatorDashboardView bookings={filteredBookings} routes={filteredRoutes} />
+        ) : (
+          <DashboardSummary bookings={filteredBookings} routes={filteredRoutes} />
+        );
       case 'BOOKINGS':
         return isOperatorPortal ? (
           <OperatorBookingsView bookings={filteredBookings} routes={filteredRoutes} onUpdateStatus={onUpdateBookingStatus} />
