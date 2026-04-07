@@ -505,7 +505,9 @@ export default function App() {
   const filteredRoutes = routes.filter(r => {
     if (!searchParams) return true;
     if (isIslandSearch) return r.mode === 'ISLAND_HOPPING';
-    const matchesSearch = r.from === searchParams.from && r.to === searchParams.to;
+    const matchesSearch = 
+      r.from.toLowerCase().includes(searchParams.from.toLowerCase()) &&
+      r.to.toLowerCase().includes(searchParams.to.toLowerCase());
     if (!matchesSearch) return false;
     if (activeFilter === 'ALL') return true;
     if (activeFilter === 'SHARED') return r.mode === 'SHUTTLE_SHARED';
