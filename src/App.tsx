@@ -245,7 +245,7 @@ export default function App() {
     setSelectedRoute(route);
   };
 
-  const handleBookingComplete = async (ref: string, phone: string) => {
+  const handleBookingComplete = async (ref: string, phone: string, travelDate: string) => {
     const currentRoute = selectedRoute;
     
     if (!currentRoute || !currentRoute.id) {
@@ -259,10 +259,11 @@ export default function App() {
     }
     
     const today = new Date().toISOString().split('T')[0];
+    const bookingDate = travelDate || searchParams?.date || today;
     const currentParams = searchParams || {
       from: currentRoute.from,
       to: currentRoute.to,
-      date: today,
+      date: bookingDate,
       seats: 1
     };
 
@@ -275,7 +276,7 @@ export default function App() {
       reference_code: ref,
       pin_code: pinCode,
       status: currentRoute.bookingType === 'INSTANT' ? 'CONFIRMED' : 'PENDING',
-      date: currentParams.date,
+      date: bookingDate,
       seats: currentParams.seats,
       total_price: currentRoute.price * currentParams.seats,
       customer_name: customerName,

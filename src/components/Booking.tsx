@@ -233,7 +233,7 @@ export const SearchWidget = ({ onSearch }: { onSearch: (from: string, to: string
 };
 
 // --- Booking Modal ---
-export const BookingModal = ({ route, onClose, onComplete }: { route: Route; onClose: () => void; onComplete: (ref: string, phone: string) => void }) => {
+export const BookingModal = ({ route, onClose, onComplete }: { route: Route; onClose: () => void; onComplete: (ref: string, phone: string, date: string) => void }) => {
   const [step, setStep] = React.useState(1);
   const [paymentMethod, setPaymentMethod] = React.useState<'ONLINE' | 'ARRIVAL'>('ONLINE');
   const [loading, setLoading] = React.useState(false);
@@ -243,6 +243,8 @@ export const BookingModal = ({ route, onClose, onComplete }: { route: Route; onC
   const [groupType, setGroupType] = React.useState<'SHARED' | 'PRIVATE'>('SHARED');
   const [totalPrice, setTotalPrice] = React.useState(route.price);
   const [seats, setSeats] = React.useState(1);
+  const today = new Date().toISOString().split('T')[0];
+  const [travelDate, setTravelDate] = React.useState(today);
 
   // Parse island hopping info from route.to if it's an island tour
   React.useEffect(() => {
@@ -278,7 +280,7 @@ export const BookingModal = ({ route, onClose, onComplete }: { route: Route; onC
   const handleComplete = () => {
     setLoading(true);
     setTimeout(() => {
-      onComplete(`PT-2026-${Math.floor(10000 + Math.random() * 90000)}`, phone);
+      onComplete(`PT-2026-${Math.floor(10000 + Math.random() * 90000)}`, phone, travelDate);
     }, 2000);
   };
 
@@ -359,16 +361,29 @@ export const BookingModal = ({ route, onClose, onComplete }: { route: Route; onC
                 <label className="ui-label text-muted">EMAIL ADDRESS</label>
                 <input type="email" placeholder="juan@example.com" className="w-full bg-surface border-b border-border px-4 py-4 text-white focus:border-gold focus:outline-none transition-colors" />
               </div>
-              <div className="space-y-1">
-                <label className="ui-label text-muted">PHONE NUMBER (WHATSAPP)</label>
+            <div className="space-y-1">
+              <label className="ui-label text-muted">PHONE NUMBER (WHATSAPP)</label>
+              <input 
+                type="tel" 
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="639123456789" 
+                className="w-full bg-surface border-b border-border px-4 py-4 text-white focus:border-gold focus:outline-none transition-colors" 
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="ui-label text-muted">TRAVEL DATE</label>
+              <div className="relative">
+                <Calendar size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gold pointer-events-none" />
                 <input 
-                  type="tel" 
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="639123456789" 
-                  className="w-full bg-surface border-b border-border px-4 py-4 text-white focus:border-gold focus:outline-none transition-colors" 
+                  type="date" 
+                  value={travelDate}
+                  onChange={(e) => setTravelDate(e.target.value)}
+                  min={today}
+                  className="w-full bg-surface border-b border-border pl-12 pr-4 py-4 text-white focus:border-gold focus:outline-none transition-colors" 
                 />
               </div>
+            </div>
               <div className="space-y-1">
                 <label className="ui-label text-muted">NUMBER OF PASSENGERS</label>
                 <div className="flex items-center bg-surface border border-border h-[58px]">
