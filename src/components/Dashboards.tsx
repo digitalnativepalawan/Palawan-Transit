@@ -1,18 +1,17 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   LayoutDashboard, BookOpen, Map, Users, CreditCard, BarChart3, 
   UserCircle, Settings as SettingsIcon, Check, X, Plus, 
   MapPin, Calendar, Users as UsersIcon, CreditCard as CreditCardIcon, 
-  Loader2, Menu, Trash2, Edit2, ArrowUpRight, ArrowDownRight
+  Loader2, Menu, Trash2, Edit2, Shield, ArrowUpRight, ArrowDownRight
 } from 'lucide-react';
 import { Route, Operator, Booking, BookingStatus } from '../types';
 import { supabase } from '../lib/supabase';
+
+// ============================================
+// TYPES & INTERFACES
+// ============================================
 
 interface AdminDashboardProps {
   routes: Route[];
@@ -38,6 +37,7 @@ type AdminTab = 'DASHBOARD' | 'BOOKINGS' | 'ROUTES' | 'OPERATORS' | 'PAYMENTS' |
 const OperatorBookingsView = ({ bookings, routes, onUpdateStatus }: { bookings: Booking[]; routes: Route[]; onUpdateStatus: (id: string, status: BookingStatus) => void | Promise<void> }) => {
   const [updatingIds, setUpdatingIds] = React.useState<Set<string>>(new Set());
 
+  // Sort: Pending first, then by date
   const pendingBookings = bookings.filter(b => b.status === 'PENDING').sort((a, b) => 
     new Date(a.date).getTime() - new Date(b.date).getTime()
   );
@@ -69,8 +69,8 @@ const OperatorBookingsView = ({ bookings, routes, onUpdateStatus }: { bookings: 
           <div key={booking.id} className="bg-[#081221] border border-gold/20 rounded-xl p-4 shadow-[0_0_15px_-5px_rgba(212,175,55,0.15)]">
             <div className="flex justify-between items-start mb-3">
               <div>
-                <h3 className="text-white font-semibold text-sm">{booking.customerName || 'Guest'}</h3>
-                <p className="ui-label text-[9px] text-muted font-mono mt-0.5">REF: {booking.referenceCode || booking.id.slice(0, 8)}</p>
+                <h3 className="text-white font-semibold text-sm">{booking.customerName || (booking as any).customer_name || 'Guest'}</h3>
+                <p className="ui-label text-[9px] text-muted font-mono mt-0.5">REF: {(booking as any).reference_code || booking.referenceCode || booking.id.slice(0, 8)}</p>
               </div>
               <span className="ui-label text-[8px] px-2 py-1 rounded-full bg-gold/10 text-gold border border-gold/30 tracking-wider">PENDING</span>
             </div>
@@ -78,7 +78,7 @@ const OperatorBookingsView = ({ bookings, routes, onUpdateStatus }: { bookings: 
               <div className="flex items-center gap-2"><MapPin size={13} className="text-gold/60 shrink-0" /><span className="truncate">{route ? `${route.from} → ${route.to}` : 'Unknown Route'}</span></div>
               <div className="flex items-center gap-2"><Calendar size={13} className="text-gold/60 shrink-0" /><span>{new Date(booking.date).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })} • {route?.departureTime || '--'}</span></div>
               <div className="flex items-center gap-2"><UsersIcon size={13} className="text-gold/60 shrink-0" /><span>{booking.seats} Seat{booking.seats > 1 ? 's' : ''}</span></div>
-              <div className="flex items-center gap-2"><CreditCardIcon size={13} className="text-gold/60 shrink-0" /><span>₱{booking.totalPrice} • <span className="text-emerald-400">Paid</span></span></div>
+              <div className="flex items-center gap-2"><CreditCardIcon size={13} className="text-gold/60 shrink-0" /><span>₱{booking.totalPrice || (booking as any).total_price} • <span className="text-emerald-400">Paid</span></span></div>
             </div>
             <div className="grid grid-cols-2 gap-3 pt-3 border-t border-white/5">
               <button onClick={() => handleUpdate(booking.id, 'CANCELLED')} disabled={isUpdating} className="flex items-center justify-center gap-2 py-2.5 rounded-lg border border-red-400/20 text-red-400 ui-label text-[9px] hover:bg-red-400/10 active:scale-[0.98] transition-all disabled:opacity-50">
@@ -104,7 +104,7 @@ const AdminBookingsView = ({ bookings, onUpdateStatus }: { bookings: Booking[]; 
       <table className="w-full text-left">
         <thead className="bg-[#050B14] border-b border-white/10">
           <tr>
-            {['PASSENGER', 'ROUTE ID', 'DATE', 'STATUS', 'ACTIONS'].map(h => (
+            {['PASSENGER', 'ROUTE', 'DATE', 'STATUS', 'ACTIONS'].map(h => (
               <th key={h} className="ui-label text-[9px] text-muted tracking-[0.2em] p-4">{h}</th>
             ))}
           </tr>
@@ -112,8 +112,8 @@ const AdminBookingsView = ({ bookings, onUpdateStatus }: { bookings: Booking[]; 
         <tbody className="divide-y divide-white/5">
           {bookings.map(b => (
             <tr key={b.id} className="hover:bg-white/5 transition-colors">
-              <td className="p-4 ui-label text-[10px] text-white">{b.customerName || 'Guest'}</td>
-              <td className="p-4 ui-label text-[10px] text-muted font-mono">{b.routeId}</td>
+              <td className="p-4 ui-label text-[10px] text-white">{b.customerName || (b as any).customer_name || 'Guest'}</td>
+              <td className="p-4 ui-label text-[10px] text-muted font-mono">{b.routeId || (b as any).route_id}</td>
               <td className="p-4 ui-label text-[10px] text-muted">{new Date(b.date).toLocaleDateString()}</td>
               <td className="p-4"><span className={`ui-label text-[9px] px-2 py-1 rounded-full ${b.status === 'PENDING' ? 'bg-gold/10 text-gold' : b.status === 'ACCEPTED' || b.status === 'CONFIRMED' ? 'bg-emerald-400/10 text-emerald-400' : 'bg-red-400/10 text-red-400'}`}>{b.status}</span></td>
               <td className="p-4">
@@ -135,14 +135,14 @@ const AdminBookingsView = ({ bookings, onUpdateStatus }: { bookings: Booking[]; 
 // ============================================
 // DASHBOARD SUMMARY
 // ============================================
-const DashboardSummary = ({ bookings, routes }: { bookings: Booking[]; routes: Route[] }) => (
+const DashboardSummary = ({ bookings, routes, isOperatorPortal }: { bookings: Booking[]; routes: Route[]; isOperatorPortal?: boolean }) => (
   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
     <div className="bg-[#081221] border border-white/10 p-5">
-      <p className="ui-label text-[9px] text-muted tracking-[0.2em]">TOTAL BOOKINGS</p>
+      <p className="ui-label text-[9px] text-muted tracking-[0.2em]">{isOperatorPortal ? 'MY BOOKINGS' : 'TOTAL BOOKINGS'}</p>
       <p className="text-2xl text-white font-display mt-1">{bookings.length}</p>
     </div>
     <div className="bg-[#081221] border border-white/10 p-5">
-      <p className="ui-label text-[9px] text-muted tracking-[0.2em]">ACTIVE ROUTES</p>
+      <p className="ui-label text-[9px] text-muted tracking-[0.2em]">{isOperatorPortal ? 'MY ROUTES' : 'ACTIVE ROUTES'}</p>
       <p className="text-2xl text-gold font-display mt-1">{routes.length}</p>
     </div>
     <div className="bg-[#081221] border border-white/10 p-5">
@@ -153,7 +153,70 @@ const DashboardSummary = ({ bookings, routes }: { bookings: Booking[]; routes: R
 );
 
 // ============================================
-// MAIN COMPONENT
+// ROUTES VIEW
+// ============================================
+const RoutesView = ({ routes, onAdd, onEdit, onDelete }: any) => (
+  <div className="space-y-6">
+    <div className="flex justify-between items-center">
+      <h2 className="text-2xl text-white font-display italic">Route Management</h2>
+      <button onClick={onAdd} className="bg-gold text-ink px-5 py-2.5 ui-label text-[9px] font-bold tracking-[0.2em] flex items-center gap-2 hover:bg-[#D4AF37] transition-colors">
+        <Plus size={14} /> ADD ROUTE
+      </button>
+    </div>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {routes.map((r: any) => (
+        <div key={r.id} className="bg-[#081221] border border-white/10 p-5 rounded-xl hover:border-gold/30 transition-all">
+          <div className="flex justify-between items-start mb-2">
+            <h3 className="text-white font-semibold text-sm">{r.from} → {r.to}</h3>
+            <div className="flex gap-2">
+              <button onClick={() => onEdit(r)} className="text-muted hover:text-gold p-1"><Edit2 size={13} /></button>
+              <button onClick={() => onDelete(r.id)} className="text-muted hover:text-red-400 p-1"><Trash2 size={13} /></button>
+            </div>
+          </div>
+          <p className="ui-label text-[8px] text-muted mt-1">{r.mode} • ₱{r.price} • Departs: {r.departureTime}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
+// ============================================
+// OPERATORS VIEW
+// ============================================
+const OperatorsView = ({ operators, onAdd, onEdit, onDelete }: any) => (
+  <div className="space-y-6">
+    <div className="flex justify-between items-center">
+      <h2 className="text-2xl text-white font-display italic">Operator Directory</h2>
+      <button onClick={onAdd} className="bg-gold text-ink px-5 py-2.5 ui-label text-[9px] font-bold tracking-[0.2em] flex items-center gap-2"><Plus size={14} /> ADD OPERATOR</button>
+    </div>
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {operators.map((op: any) => (
+        <div key={op.id} className="bg-[#081221] border border-white/10 p-5 rounded-xl">
+          <h3 className="text-white font-semibold text-sm">{op.name}</h3>
+          <p className="ui-label text-[9px] text-muted mt-1">{op.phone} • {op.type} • {op.location}</p>
+          <div className="flex gap-2 mt-3">
+            <button onClick={() => onEdit(op)} className="ui-label text-[8px] text-gold hover:text-white">EDIT</button>
+            <button onClick={() => onDelete(op.id)} className="ui-label text-[8px] text-red-400 hover:text-white">DELETE</button>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
+// ============================================
+// SETTINGS VIEW (Placeholder)
+// ============================================
+const SettingsView = () => (
+  <div className="bg-[#081221] border border-white/10 p-8 max-w-2xl rounded-xl text-center">
+    <SettingsIcon size={40} className="mx-auto text-muted mb-4" />
+    <h3 className="text-white font-semibold text-lg mb-2">System Settings</h3>
+    <p className="text-muted text-sm">Manage your portal preferences, notification rules, and integrations. Coming soon in the next deploy.</p>
+  </div>
+);
+
+// ============================================
+// MAIN ADMIN DASHBOARD COMPONENT
 // ============================================
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ 
@@ -167,8 +230,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [showOperatorModal, setShowOperatorModal] = React.useState(false);
   const [editingItem, setEditingItem] = React.useState<any>(null);
 
-  const filteredBookings = isOperatorPortal ? bookings.filter(b => b.operatorId === operatorId) : bookings;
-  const filteredRoutes = isOperatorPortal ? routes.filter(r => r.operatorId === operatorId) : routes;
+  // --- FIX APPLIED: Using snake_case 'operator_id' to match Supabase schema ---
+  const filteredBookings = isOperatorPortal 
+    ? bookings.filter(b => b.operator_id === operatorId)
+    : bookings;
+
+  const filteredRoutes = isOperatorPortal
+    ? routes.filter(r => r.operator_id === operatorId)
+    : routes;
 
   const sidebarItems = isOperatorPortal ? [
     { id: 'DASHBOARD', label: 'My Dashboard', icon: LayoutDashboard },
@@ -181,13 +250,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     { id: 'ROUTES', label: 'Routes', icon: Map },
     { id: 'OPERATORS', label: 'Operators', icon: Users },
     { id: 'PAYMENTS', label: 'Payments', icon: CreditCard },
+    { id: 'REPORTS', label: 'Reports', icon: BarChart3 },
+    { id: 'PASSENGERS', label: 'Passengers', icon: UserCircle },
     { id: 'SETTINGS', label: 'Settings', icon: SettingsIcon },
   ];
 
   const renderContent = () => {
     switch (activeTab) {
       case 'DASHBOARD':
-        return <DashboardSummary bookings={filteredBookings} routes={filteredRoutes} />;
+        return <DashboardSummary bookings={filteredBookings} routes={filteredRoutes} isOperatorPortal={isOperatorPortal} />;
       case 'BOOKINGS':
         return isOperatorPortal ? (
           <OperatorBookingsView bookings={filteredBookings} routes={filteredRoutes} onUpdateStatus={onUpdateBookingStatus} />
@@ -195,61 +266,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           <AdminBookingsView bookings={filteredBookings} onUpdateStatus={onUpdateBookingStatus} />
         );
       case 'ROUTES':
-        return (
-          <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl text-white font-display italic">Route Management</h2>
-              <button onClick={() => { setEditingItem(null); setShowRouteModal(true); }} className="bg-gold text-ink px-5 py-2.5 ui-label text-[9px] font-bold tracking-[0.2em] flex items-center gap-2 hover:bg-[#D4AF37] transition-colors">
-                <Plus size={14} /> ADD ROUTE
-              </button>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {filteredRoutes.map(r => (
-                <div key={r.id} className="bg-[#081221] border border-white/10 p-5 rounded-xl hover:border-gold/30 transition-all">
-                  <div className="flex justify-between items-start mb-2">
-                    <h3 className="text-white font-semibold text-sm">{r.from} → {r.to}</h3>
-                    <div className="flex gap-2">
-                      <button onClick={() => { setEditingItem(r); setShowRouteModal(true); }} className="text-muted hover:text-gold p-1"><Edit2 size={13} /></button>
-                      <button onClick={() => onDeleteRoute(r.id)} className="text-muted hover:text-red-400 p-1"><Trash2 size={13} /></button>
-                    </div>
-                  </div>
-                  <p className="ui-label text-[8px] text-muted mt-1">{r.mode} • ₱{r.price} • Seats: {r.seatsLeft}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        );
+        return <RoutesView routes={filteredRoutes} onAdd={() => { setEditingItem(null); setShowRouteModal(true); }} onEdit={(r) => { setEditingItem(r); setShowRouteModal(true); }} onDelete={onDeleteRoute} />;
       case 'OPERATORS':
-        return (
-          <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl text-white font-display italic">Operator Directory</h2>
-              <button onClick={() => { setEditingItem(null); setShowOperatorModal(true); }} className="bg-gold text-ink px-5 py-2.5 ui-label text-[9px] font-bold tracking-[0.2em] flex items-center gap-2"><Plus size={14} /> ADD OPERATOR</button>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {operators.map(op => (
-                <div key={op.id} className="bg-[#081221] border border-white/10 p-5 rounded-xl">
-                  <h3 className="text-white font-semibold text-sm">{op.name}</h3>
-                  <p className="ui-label text-[9px] text-muted mt-1">{op.phone} • {op.type}</p>
-                  <div className="flex gap-2 mt-3">
-                    <button onClick={() => { setEditingItem(op); setShowOperatorModal(true); }} className="ui-label text-[8px] text-gold hover:text-white">EDIT</button>
-                    <button onClick={() => onDeleteOperator(op.id)} className="ui-label text-[8px] text-red-400 hover:text-white">DELETE</button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        );
-      case 'SETTINGS':
-        return (
-          <div className="bg-[#081221] border border-white/10 p-8 max-w-2xl rounded-xl text-center">
-            <SettingsIcon size={40} className="mx-auto text-muted mb-4" />
-            <h3 className="text-white font-semibold text-lg mb-2">System Settings</h3>
-            <p className="text-muted text-sm">Manage your portal preferences, notification rules, and integrations. Coming soon in the next deploy.</p>
-          </div>
-        );
-      default:
-        return <div className="text-muted text-center py-20">Module under construction.</div>;
+        return <OperatorsView operators={operators} onAdd={() => { setEditingItem(null); setShowOperatorModal(true); }} onEdit={(op) => { setEditingItem(op); setShowOperatorModal(true); }} onDelete={onDeleteOperator} />;
+      case 'PAYMENTS': return <div className="text-muted text-center py-20">Payments Module Placeholder</div>;
+      case 'REPORTS': return <div className="text-muted text-center py-20">Reports Module Placeholder</div>;
+      case 'PASSENGERS': return <div className="text-muted text-center py-20">Passengers Module Placeholder</div>;
+      case 'SETTINGS': return <SettingsView />;
+      default: return null;
     }
   };
 
@@ -303,7 +327,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {/* Modals */}
       <AnimatePresence>
         {showRouteModal && (
-          <RouteModal route={editingItem} operators={operators} onClose={() => setShowRouteModal(false)} onSave={editingItem ? onEditRoute : onAddRoute} />
+          <RouteModal route={editingItem} onClose={() => setShowRouteModal(false)} onSave={editingItem ? onEditRoute : onAddRoute} />
         )}
         {showOperatorModal && (
           <OperatorModal operator={editingItem} onClose={() => setShowOperatorModal(false)} onSave={editingItem ? onEditOperator : onAddOperator} />
@@ -314,10 +338,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 };
 
 // ============================================
-// SUB-COMPONENTS (Modals)
+// MODAL COMPONENTS
 // ============================================
 
-const RouteModal = ({ route, operators, onClose, onSave }: any) => {
+const RouteModal = ({ route, onClose, onSave }: any) => {
   const [formData, setFormData] = React.useState(route || { from: '', to: '', mode: 'SHUTTLE_SHARED', price: 0, departureTime: '', seatsLeft: 12 });
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-center justify-center px-4">
@@ -326,10 +350,9 @@ const RouteModal = ({ route, operators, onClose, onSave }: any) => {
         <h2 className="text-xl text-white font-display italic mb-6">{route ? 'Edit Route' : 'New Route'}</h2>
         <div className="grid grid-cols-2 gap-3 mb-6">
           {['from', 'to', 'departureTime'].map(f => (
-            <input key={f} placeholder={f.toUpperCase()} value={(formData as any)[f]} onChange={e => setFormData({...formData, [f]: e.target.value})} className="w-full bg-[#050B14] border border-white/10 p-3 ui-label text-[10px] text-white outline-none focus:border-gold rounded" />
+            <input key={f} placeholder={f.toUpperCase()} value={(formData as any)[f] || ''} onChange={e => setFormData({...formData, [f]: e.target.value})} className="w-full bg-[#050B14] border border-white/10 p-3 ui-label text-[10px] text-white outline-none focus:border-gold rounded" />
           ))}
-          <input type="number" placeholder="PRICE" value={formData.price} onChange={e => setFormData({...formData, price: Number(e.target.value)})} className="w-full bg-[#050B14] border border-white/10 p-3 ui-label text-[10px] text-white outline-none focus:border-gold rounded" />
-          <input type="number" placeholder="SEATS" value={formData.seatsLeft} onChange={e => setFormData({...formData, seatsLeft: Number(e.target.value)})} className="w-full bg-[#050B14] border border-white/10 p-3 ui-label text-[10px] text-white outline-none focus:border-gold rounded" />
+          <input type="number" placeholder="PRICE" value={formData.price || 0} onChange={e => setFormData({...formData, price: Number(e.target.value)})} className="w-full bg-[#050B14] border border-white/10 p-3 ui-label text-[10px] text-white outline-none focus:border-gold rounded" />
         </div>
         <div className="flex gap-3">
           <button onClick={onClose} className="flex-1 py-3 border border-white/10 text-muted ui-label text-[10px] hover:text-white">CANCEL</button>
