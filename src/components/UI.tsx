@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Menu, Anchor, Truck, Waves, Shield, X, Phone, BookOpen } from 'lucide-react';
+import { Menu, Anchor, Truck, Waves, Shield, X, Phone, BookOpen, Upload, Image, Check, Loader2 } from 'lucide-react';
 import { Route, BookingStatus } from '../types';
 import { supabase } from '../lib/supabase';
 
@@ -141,10 +141,291 @@ const MyBookingsModal = ({ onClose }: { onClose: () => void }) => {
   );
 };
 
+// ============================================
+// JOIN AS OPERATOR MODAL
+// ============================================
+const JoinAsOperatorModal = ({ onClose }: { onClose: () => void }) => {
+  const [step, setStep] = React.useState<'choose' | 'form' | 'success'>('choose');
+  const [operatorType, setOperatorType] = React.useState<'VAN' | 'BOAT'>('VAN');
+  const [isSaving, setIsSaving] = React.useState(false);
+  const [generatedPasskey, setGeneratedPasskey] = React.useState('');
+  const [copied, setCopied] = React.useState(false);
+  const [uploadingVehicle, setUploadingVehicle] = React.useState(false);
+  const [uploadingPermit, setUploadingPermit] = React.useState(false);
+  const [vehicleImages, setVehicleImages] = React.useState<string[]>([]);
+  const [permitImage, setPermitImage] = React.useState('');
+  const [formData, setFormData] = React.useState({
+    name: '',
+    phone: '',
+    whatsapp: '',
+    email: '',
+    location: '',
+    description: '',
+  });
+
+  const generatePasskey = (lastName: string) => {
+    const pin = Math.floor(1000 + Math.random() * 9000).toString();
+    return lastName.toUpperCase().replace(/\s/g, '') + pin;
+  };
+
+  const uploadImage = async (file: File, bucket: string): Promise<string | null> => {
+    const ext = file.name.split('.').pop();
+    const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+    const { error } = await supabase.storage.from(bucket).upload(path, file);
+    if (error) { console.error(error); return null; }
+    const { data } = supabase.storage.from(bucket).getPublicUrl(path);
+    return data.publicUrl;
+  };
+
+  const handleVehicleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    setUploadingVehicle(true);
+    const urls: string[] = [];
+    for (const file of files) {
+      const url = await uploadImage(file, 'operator-images');
+      if (url) urls.push(url);
+    }
+    setVehicleImages(prev => [...prev, ...urls]);
+    setUploadingVehicle(false);
+  };
+
+  const handlePermitUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingPermit(true);
+    const url = await uploadImage(file, 'operator-permits');
+    if (url) setPermitImage(url);
+    setUploadingPermit(false);
+  };
+
+  const handleSubmit = async () => {
+    if (!formData.name || !formData.phone) return;
+    setIsSaving(true);
+    const lastName = formData.name.trim().split(' ').pop() || formData.name;
+    const passkey = generatePasskey(lastName);
+    try {
+      const { error } = await supabase.from('operators').insert([{
+        name: formData.name,
+        phone: formData.phone,
+        whatsapp: formData.whatsapp || formData.phone,
+        email: formData.email,
+        location: formData.location,
+        description: formData.description,
+        type: operatorType,
+        vehicle_photos: vehicleImages,
+        images: vehicleImages,
+        permits: permitImage ? [permitImage] : [],
+        passkey: passkey,
+      }]);
+      if (error) throw error;
+      setGeneratedPasskey(passkey);
+      setStep('success');
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(generatedPasskey);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  // STEP 1: Choose type
+  if (step === 'choose') {
+    return (
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-center justify-center px-4">
+        <div className="absolute inset-0 bg-ink/95 backdrop-blur-md" onClick={onClose} />
+        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-deep border border-border w-full max-w-lg relative z-10 p-10">
+          <button onClick={onClose} className="absolute top-6 right-6 text-muted hover:text-white"><X size={20} /></button>
+          <h2 className="text-3xl text-white italic mb-2">Join as Operator</h2>
+          <p className="ui-label text-[10px] text-muted tracking-[0.2em] mb-10">WHAT TYPE OF SERVICE DO YOU OFFER?</p>
+          <div className="grid grid-cols-2 gap-4">
+            <button
+              onClick={() => { setOperatorType('VAN'); setStep('form'); }}
+              className="group flex flex-col items-center gap-4 p-8 border border-white/10 hover:border-gold/50 hover:bg-gold/5 transition-all rounded-xl"
+            >
+              <Truck size={40} className="text-muted group-hover:text-gold transition-colors" />
+              <div className="text-center">
+                <p className="text-white font-semibold text-sm mb-1">Land Transport</p>
+                <p className="ui-label text-[9px] text-muted">Vans, Shuttles, 4x4</p>
+              </div>
+            </button>
+            <button
+              onClick={() => { setOperatorType('BOAT'); setStep('form'); }}
+              className="group flex flex-col items-center gap-4 p-8 border border-white/10 hover:border-gold/50 hover:bg-gold/5 transition-all rounded-xl"
+            >
+              <Anchor size={40} className="text-muted group-hover:text-gold transition-colors" />
+              <div className="text-center">
+                <p className="text-white font-semibold text-sm mb-1">Island Hopping</p>
+                <p className="ui-label text-[9px] text-muted">Bangkas, Boats</p>
+              </div>
+            </button>
+          </div>
+        </motion.div>
+      </motion.div>
+    );
+  }
+
+  // STEP 2: Fill form
+  if (step === 'form') {
+    return (
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-center justify-center px-4">
+        <div className="absolute inset-0 bg-ink/95 backdrop-blur-md" onClick={onClose} />
+        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-deep border border-border w-full max-w-lg relative z-10 overflow-hidden max-h-[90vh] flex flex-col">
+          <div className="flex items-center justify-between p-8 border-b border-border shrink-0">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                {operatorType === 'VAN' ? <Truck size={16} className="text-gold" /> : <Anchor size={16} className="text-gold" />}
+                <span className="ui-label text-[9px] text-gold tracking-[0.2em]">{operatorType === 'VAN' ? 'LAND TRANSPORT' : 'ISLAND HOPPING'}</span>
+              </div>
+              <h2 className="text-2xl text-white italic">Operator Registration</h2>
+            </div>
+            <button onClick={onClose} className="text-muted hover:text-white"><X size={20} /></button>
+          </div>
+
+          <div className="overflow-y-auto flex-1 p-8 space-y-4">
+            {/* Basic Info */}
+            <div className="space-y-3">
+              <p className="ui-label text-[9px] text-gold tracking-[0.2em]">BASIC INFORMATION</p>
+              {[
+                { field: 'name', label: 'COMPANY / OPERATOR NAME *', placeholder: 'e.g. Santos Transport' },
+                { field: 'phone', label: 'PHONE NUMBER *', placeholder: '+63 912 345 6789' },
+                { field: 'whatsapp', label: 'WHATSAPP NUMBER', placeholder: '+63 912 345 6789' },
+                { field: 'email', label: 'EMAIL ADDRESS', placeholder: 'you@email.com' },
+                { field: 'location', label: 'BASE LOCATION', placeholder: 'e.g. Puerto Princesa' },
+              ].map(({ field, label, placeholder }) => (
+                <div key={field}>
+                  <label className="ui-label text-[8px] text-muted tracking-[0.2em] block mb-1">{label}</label>
+                  <input
+                    value={(formData as any)[field]}
+                    onChange={e => setFormData({ ...formData, [field]: e.target.value })}
+                    placeholder={placeholder}
+                    className="w-full bg-surface border border-border p-3 ui-label text-[10px] text-white outline-none focus:border-gold transition-colors"
+                  />
+                </div>
+              ))}
+              <div>
+                <label className="ui-label text-[8px] text-muted tracking-[0.2em] block mb-1">DESCRIPTION</label>
+                <textarea
+                  value={formData.description}
+                  onChange={e => setFormData({ ...formData, description: e.target.value })}
+                  placeholder={operatorType === 'VAN' ? 'Describe your shuttle service, routes you cover...' : 'Describe your island hopping packages, boat capacity...'}
+                  rows={3}
+                  className="w-full bg-surface border border-border p-3 ui-label text-[10px] text-white outline-none focus:border-gold resize-none transition-colors"
+                />
+              </div>
+            </div>
+
+            {/* Vehicle/Boat Photos */}
+            <div className="space-y-3">
+              <p className="ui-label text-[9px] text-gold tracking-[0.2em]">{operatorType === 'VAN' ? 'VEHICLE PHOTOS' : 'BOAT PHOTOS'}</p>
+              <div className="grid grid-cols-3 gap-2">
+                {vehicleImages.map((url, i) => (
+                  <div key={i} className="relative aspect-video border border-white/10 overflow-hidden group rounded">
+                    <img src={url} alt="" className="w-full h-full object-cover" />
+                    <button
+                      onClick={() => setVehicleImages(prev => prev.filter((_, idx) => idx !== i))}
+                      className="absolute top-1 right-1 bg-red-500/80 text-white rounded-full w-5 h-5 hidden group-hover:flex items-center justify-center text-xs"
+                    >×</button>
+                  </div>
+                ))}
+                <label className="aspect-video border border-dashed border-white/20 flex flex-col items-center justify-center cursor-pointer hover:border-gold/40 transition-colors rounded">
+                  {uploadingVehicle ? <Loader2 size={18} className="text-muted animate-spin" /> : (
+                    <>
+                      <Upload size={18} className="text-muted mb-1" />
+                      <span className="ui-label text-[8px] text-muted">ADD</span>
+                    </>
+                  )}
+                  <input type="file" accept="image/*" multiple onChange={handleVehicleUpload} className="hidden" />
+                </label>
+              </div>
+            </div>
+
+            {/* Permit Upload */}
+            <div className="space-y-3">
+              <p className="ui-label text-[9px] text-gold tracking-[0.2em]">BUSINESS PERMIT / LICENSE</p>
+              {permitImage ? (
+                <div className="relative border border-white/10 rounded overflow-hidden group">
+                  <img src={permitImage} alt="Permit" className="w-full max-h-32 object-contain bg-surface" />
+                  <button
+                    onClick={() => setPermitImage('')}
+                    className="absolute top-2 right-2 bg-red-500/80 text-white rounded px-2 py-1 ui-label text-[8px] opacity-0 group-hover:opacity-100 transition-opacity"
+                  >REMOVE</button>
+                </div>
+              ) : (
+                <label className="flex flex-col items-center justify-center border border-dashed border-white/20 p-6 cursor-pointer hover:border-gold/40 transition-colors rounded">
+                  {uploadingPermit ? <Loader2 size={20} className="text-muted animate-spin" /> : (
+                    <>
+                      <Image size={20} className="text-muted mb-2" />
+                      <span className="ui-label text-[9px] text-muted">UPLOAD PERMIT / LICENSE</span>
+                    </>
+                  )}
+                  <input type="file" accept="image/*" onChange={handlePermitUpload} className="hidden" />
+                </label>
+              )}
+            </div>
+          </div>
+
+          <div className="p-8 border-t border-border shrink-0 flex gap-3">
+            <button onClick={() => setStep('choose')} className="flex-1 py-3 border border-border text-muted ui-label text-[10px] hover:text-white transition-colors">
+              BACK
+            </button>
+            <button
+              onClick={handleSubmit}
+              disabled={isSaving || !formData.name || !formData.phone}
+              className="flex-1 py-3 bg-gold text-ink ui-label text-[10px] font-bold tracking-[0.2em] hover:bg-white transition-all disabled:opacity-50"
+            >
+              {isSaving ? 'REGISTERING...' : 'REGISTER'}
+            </button>
+          </div>
+        </motion.div>
+      </motion.div>
+    );
+  }
+
+  // STEP 3: Success + Passkey
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-center justify-center px-4">
+      <div className="absolute inset-0 bg-ink/95 backdrop-blur-md" onClick={onClose} />
+      <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-deep border border-border w-full max-w-md relative z-10 p-10 text-center">
+        <div className="w-16 h-16 bg-gold/10 rounded-full flex items-center justify-center mx-auto mb-6">
+          <Check size={32} className="text-gold" />
+        </div>
+        <h2 className="text-3xl text-white italic mb-2">Welcome Aboard!</h2>
+        <p className="ui-label text-[10px] text-muted tracking-[0.2em] mb-8">YOUR OPERATOR PROFILE HAS BEEN CREATED</p>
+
+        <div className="bg-surface border border-gold/30 p-6 mb-6 rounded">
+          <p className="ui-label text-[9px] text-muted tracking-[0.2em] mb-3">YOUR OPERATOR PASSKEY</p>
+          <p className="font-ui text-2xl text-gold tracking-[0.3em] mb-2">{generatedPasskey}</p>
+          <p className="ui-label text-[8px] text-muted">SAVE THIS — YOU NEED IT TO LOGIN TO YOUR PORTAL</p>
+        </div>
+
+        <button
+          onClick={handleCopy}
+          className="w-full py-3 bg-gold text-ink ui-label text-[10px] font-bold tracking-[0.2em] hover:bg-white transition-all mb-3 flex items-center justify-center gap-2"
+        >
+          {copied ? <><Check size={14} /> COPIED!</> : 'COPY PASSKEY'}
+        </button>
+        <button
+          onClick={onClose}
+          className="w-full py-3 border border-border text-muted ui-label text-[10px] hover:text-white transition-colors"
+        >
+          CLOSE
+        </button>
+      </motion.div>
+    </motion.div>
+  );
+};
+
 export const Navbar = ({ onAdminClick }: { onAdminClick: (title?: string) => void }) => {
   const [scrolled, setScrolled] = React.useState(false);
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   const [showBookings, setShowBookings] = React.useState(false);
+  const [showJoinOperator, setShowJoinOperator] = React.useState(false);
 
   React.useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 50);
@@ -183,6 +464,10 @@ export const Navbar = ({ onAdminClick }: { onAdminClick: (title?: string) => voi
       </AnimatePresence>
 
       <AnimatePresence>
+        {showJoinOperator && <JoinAsOperatorModal onClose={() => setShowJoinOperator(false)} />}
+      </AnimatePresence>
+
+      <AnimatePresence>
         {isMenuOpen && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex justify-end">
             <div className="absolute inset-0 bg-ink/95 backdrop-blur-md" onClick={() => setIsMenuOpen(false)} />
@@ -201,6 +486,7 @@ export const Navbar = ({ onAdminClick }: { onAdminClick: (title?: string) => voi
                 <button onClick={() => setIsMenuOpen(false)} className="block text-4xl text-white italic hover:text-gold transition-colors text-left w-full">ISLAND HOPPING</button>
                 <button onClick={() => { setIsMenuOpen(false); setShowBookings(true); }} className="block text-4xl text-white italic hover:text-gold transition-colors text-left w-full">MY BOOKINGS</button>
                 <button onClick={() => { setIsMenuOpen(false); onAdminClick('Operator Login'); }} className="block text-4xl text-white italic hover:text-gold transition-colors text-left w-full">OPERATOR PORTAL</button>
+                <button onClick={() => { setIsMenuOpen(false); setShowJoinOperator(true); }} className="block text-4xl text-white italic hover:text-gold transition-colors text-left w-full">JOIN AS OPERATOR</button>
               </div>
               <div className="mt-auto">
                 <p className="ui-label text-muted text-[8px] mb-4 tracking-[0.3em]">PALAWAN COLLECTIVE</p>
