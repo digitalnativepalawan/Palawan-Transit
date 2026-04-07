@@ -21,6 +21,7 @@ export const SearchWidget = ({ onSearch }: { onSearch: (from: string, to: string
   const [date, setDate] = React.useState(new Date().toISOString().split('T')[0]);
   const [seats, setSeats] = React.useState(1);
 
+  // Fetch island hopping tours from database
   React.useEffect(() => {
     const fetchTours = async () => {
       const { data } = await supabase
@@ -32,6 +33,7 @@ export const SearchWidget = ({ onSearch }: { onSearch: (from: string, to: string
     fetchTours();
   }, []);
 
+  // Update selected tour when location changes
   React.useEffect(() => {
     const tour = tours.find(t => t.location === tourLocation);
     setSelectedTour(tour);
@@ -39,6 +41,7 @@ export const SearchWidget = ({ onSearch }: { onSearch: (from: string, to: string
 
   const handleSearch = () => {
     if (searchType === 'ISLAND_HOPPING') {
+      // Pass tour info as "to" parameter with special format
       const tourParam = `ISLAND:${tourLocation}:${selectedTour?.tour_name || 'Tour A'}:${groupType}`;
       onSearch(tourLocation, tourParam, date, seats, 'ISLAND_HOPPING', groupType);
     } else {
@@ -235,14 +238,13 @@ export const BookingModal = ({ route, onClose, onComplete }: { route: Route; onC
   const [paymentMethod, setPaymentMethod] = React.useState<'ONLINE' | 'ARRIVAL'>('ONLINE');
   const [loading, setLoading] = React.useState(false);
   const [phone, setPhone] = React.useState('63');
-  const [customerName, setCustomerName] = React.useState('');
-  const [customerEmail, setCustomerEmail] = React.useState('');
   const [isIslandHopping, setIsIslandHopping] = React.useState(false);
   const [tourDetails, setTourDetails] = React.useState<any>(null);
   const [groupType, setGroupType] = React.useState<'SHARED' | 'PRIVATE'>('SHARED');
   const [totalPrice, setTotalPrice] = React.useState(route.price);
   const [seats, setSeats] = React.useState(1);
 
+  // Parse island hopping info from route.to if it's an island tour
   React.useEffect(() => {
     if (route.to && route.to.startsWith('ISLAND:')) {
       setIsIslandHopping(true);
@@ -251,7 +253,8 @@ export const BookingModal = ({ route, onClose, onComplete }: { route: Route; onC
       const tourName = parts[2];
       const group = parts[3] as 'SHARED' | 'PRIVATE';
       setGroupType(group);
-
+      
+      // Fetch tour details
       const fetchTour = async () => {
         const { data } = await supabase
           .from('island_hopping_tours')
@@ -272,44 +275,11 @@ export const BookingModal = ({ route, onClose, onComplete }: { route: Route; onC
     }
   }, [route]);
 
-  const handleComplete = async () => {
+  const handleComplete = () => {
     setLoading(true);
-    try {
-      const uuid = crypto.randomUUID();
-      const refCode = `PT-${uuid.split('-')[0].toUpperCase()}-${uuid.split('-')[1].toUpperCase()}`;
-      const pinCode = Math.floor(100000 + Math.random() * 900000).toString();
-      const normalizedPhone = phone.replace(/\D/g, '');
-      const lastFour = normalizedPhone.slice(-4);
-
-      const insertData: any = {
-        reference_code: refCode,
-        pin_code: pinCode,
-        status: 'ACCEPTED',
-        date: new Date().toISOString().split('T')[0],
-        seats: seats,
-        total_price: getFinalTotal(),
-        customer_name: customerName.trim() || `Guest ${lastFour}`,
-        customer_email: customerEmail.trim() || `guest${lastFour}@guest.com`,
-        customer_phone: normalizedPhone,
-      };
-
-      if (route.id) insertData.route_id = route.id;
-      if ((route as any).operator_id) insertData.operator_id = (route as any).operator_id;
-
-      const { error } = await supabase.from('bookings').insert(insertData);
-
-      if (error) {
-        console.error('Supabase insert error:', error);
-        alert(`Booking failed: ${error.message}`);
-        setLoading(false);
-        return;
-      }
-
-      onComplete(refCode, normalizedPhone);
-    } catch (err) {
-      console.error('Booking failed:', err);
-      setLoading(false);
-    }
+    setTimeout(() => {
+      onComplete(`PT-2026-${Math.floor(10000 + Math.random() * 90000)}`, phone);
+    }, 2000);
   };
 
   const getDisplayPrice = () => {
@@ -383,32 +353,20 @@ export const BookingModal = ({ route, onClose, onComplete }: { route: Route; onC
             >
               <div className="space-y-1">
                 <label className="ui-label text-muted">FULL NAME</label>
-                <input
-                  type="text"
-                  placeholder="Juan Dela Cruz"
-                  value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value)}
-                  className="w-full bg-surface border-b border-border px-4 py-4 text-white focus:border-gold focus:outline-none transition-colors"
-                />
+                <input type="text" placeholder="Juan Dela Cruz" className="w-full bg-surface border-b border-border px-4 py-4 text-white focus:border-gold focus:outline-none transition-colors" />
               </div>
               <div className="space-y-1">
                 <label className="ui-label text-muted">EMAIL ADDRESS</label>
-                <input
-                  type="email"
-                  placeholder="juan@example.com"
-                  value={customerEmail}
-                  onChange={(e) => setCustomerEmail(e.target.value)}
-                  className="w-full bg-surface border-b border-border px-4 py-4 text-white focus:border-gold focus:outline-none transition-colors"
-                />
+                <input type="email" placeholder="juan@example.com" className="w-full bg-surface border-b border-border px-4 py-4 text-white focus:border-gold focus:outline-none transition-colors" />
               </div>
               <div className="space-y-1">
                 <label className="ui-label text-muted">PHONE NUMBER (WHATSAPP)</label>
-                <input
-                  type="tel"
+                <input 
+                  type="tel" 
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  placeholder="639123456789"
-                  className="w-full bg-surface border-b border-border px-4 py-4 text-white focus:border-gold focus:outline-none transition-colors"
+                  placeholder="639123456789" 
+                  className="w-full bg-surface border-b border-border px-4 py-4 text-white focus:border-gold focus:outline-none transition-colors" 
                 />
               </div>
               <div className="space-y-1">
@@ -431,10 +389,7 @@ export const BookingModal = ({ route, onClose, onComplete }: { route: Route; onC
               </div>
               <div className="space-y-1">
                 <label className="ui-label text-muted">SPECIAL REQUESTS</label>
-                <textarea
-                  placeholder="Dietary needs, extra luggage..."
-                  className="w-full bg-surface border-b border-border px-4 py-4 text-white focus:border-gold focus:outline-none transition-colors h-24 resize-none"
-                />
+                <textarea placeholder="Dietary needs, extra luggage..." className="w-full bg-surface border-b border-border px-4 py-4 text-white focus:border-gold focus:outline-none transition-colors h-24 resize-none" />
               </div>
               <button
                 onClick={() => setStep(2)}
