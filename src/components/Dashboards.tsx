@@ -4,14 +4,10 @@ import {
   LayoutDashboard, BookOpen, Map, Users, CreditCard, BarChart3, 
   UserCircle, Settings as SettingsIcon, Check, X, Plus, 
   MapPin, Calendar, Users as UsersIcon, CreditCard as CreditCardIcon, 
-  Loader2, Menu, Trash2, Edit2, Shield, ArrowUpRight, ArrowDownRight
+  Loader2, Menu, Trash2, Edit2, Upload, Image
 } from 'lucide-react';
 import { Route, Operator, Booking, BookingStatus } from '../types';
 import { supabase } from '../lib/supabase';
-
-// ============================================
-// TYPES & INTERFACES
-// ============================================
 
 interface AdminDashboardProps {
   routes: Route[];
@@ -32,12 +28,195 @@ interface AdminDashboardProps {
 type AdminTab = 'DASHBOARD' | 'BOOKINGS' | 'ROUTES' | 'OPERATORS' | 'PAYMENTS' | 'REPORTS' | 'PASSENGERS' | 'SETTINGS';
 
 // ============================================
-// OPERATOR BOOKINGS LIST (UX Improved)
+// OPERATOR PROFILE SETTINGS (FULL FORM)
+// ============================================
+const OperatorProfileSettings = ({ operator, onUpdate }: { operator: any; onUpdate: (op: any) => void }) => {
+  const [formData, setFormData] = React.useState({
+    name: operator?.name || '',
+    phone: operator?.phone || '',
+    whatsapp: operator?.whatsapp || '',
+    email: operator?.email || '',
+    location: operator?.location || '',
+    description: operator?.description || '',
+    type: operator?.type || 'VAN',
+  });
+  const [isSaving, setIsSaving] = React.useState(false);
+  const [saved, setSaved] = React.useState(false);
+  const [vehicleImages, setVehicleImages] = React.useState<string[]>(operator?.vehicle_photos || operator?.images || []);
+  const [permitImage, setPermitImage] = React.useState<string>(operator?.permits?.[0] || '');
+  const [uploadingVehicle, setUploadingVehicle] = React.useState(false);
+  const [uploadingPermit, setUploadingPermit] = React.useState(false);
+
+  const uploadImage = async (file: File, bucket: string): Promise<string | null> => {
+    const ext = file.name.split('.').pop();
+    const path = `${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from(bucket).upload(path, file);
+    if (error) { console.error(error); return null; }
+    const { data } = supabase.storage.from(bucket).getPublicUrl(path);
+    return data.publicUrl;
+  };
+
+  const handleVehicleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    setUploadingVehicle(true);
+    const urls: string[] = [];
+    for (const file of files) {
+      const url = await uploadImage(file, 'operator-images');
+      if (url) urls.push(url);
+    }
+    setVehicleImages(prev => [...prev, ...urls]);
+    setUploadingVehicle(false);
+  };
+
+  const handlePermitUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingPermit(true);
+    const url = await uploadImage(file, 'operator-permits');
+    if (url) setPermitImage(url);
+    setUploadingPermit(false);
+  };
+
+  const handleSave = async () => {
+    if (!operator?.id) return;
+    setIsSaving(true);
+    const updateData = {
+      ...formData,
+      vehicle_photos: vehicleImages,
+      images: vehicleImages,
+      permits: permitImage ? [permitImage] : [],
+    };
+    const { error } = await supabase.from('operators').update(updateData).eq('id', operator.id);
+    if (!error) {
+      onUpdate({ ...operator, ...updateData });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    }
+    setIsSaving(false);
+  };
+
+  return (
+    <div className="space-y-6 max-w-2xl">
+      <h2 className="text-2xl text-white font-display italic">Operator Profile</h2>
+
+      {/* Basic Info */}
+      <div className="bg-[#081221] border border-white/10 rounded-xl p-6 space-y-4">
+        <p className="ui-label text-[9px] text-gold tracking-[0.2em]">BASIC INFORMATION</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {[
+            { field: 'name', label: 'COMPANY NAME' },
+            { field: 'phone', label: 'PHONE NUMBER' },
+            { field: 'whatsapp', label: 'WHATSAPP' },
+            { field: 'email', label: 'EMAIL' },
+            { field: 'location', label: 'BASE LOCATION' },
+          ].map(({ field, label }) => (
+            <div key={field} className="space-y-1">
+              <label className="ui-label text-[8px] text-muted tracking-[0.2em]">{label}</label>
+              <input
+                value={(formData as any)[field]}
+                onChange={e => setFormData({ ...formData, [field]: e.target.value })}
+                className="w-full bg-[#050B14] border border-white/10 p-3 ui-label text-[10px] text-white outline-none focus:border-gold rounded transition-colors"
+              />
+            </div>
+          ))}
+          <div className="space-y-1">
+            <label className="ui-label text-[8px] text-muted tracking-[0.2em]">SERVICE TYPE</label>
+            <select
+              value={formData.type}
+              onChange={e => setFormData({ ...formData, type: e.target.value })}
+              className="w-full bg-[#050B14] border border-white/10 p-3 ui-label text-[10px] text-white outline-none focus:border-gold rounded transition-colors"
+            >
+              <option value="VAN">Van / Shuttle (Land Transport)</option>
+              <option value="BOAT">Bangka / Boat (Island Hopping)</option>
+              <option value="PRIVATE">Private Transfer</option>
+              <option value="BOTH">Both Land & Sea</option>
+            </select>
+          </div>
+        </div>
+        <div className="space-y-1">
+          <label className="ui-label text-[8px] text-muted tracking-[0.2em]">DESCRIPTION</label>
+          <textarea
+            value={formData.description}
+            onChange={e => setFormData({ ...formData, description: e.target.value })}
+            rows={3}
+            className="w-full bg-[#050B14] border border-white/10 p-3 ui-label text-[10px] text-white outline-none focus:border-gold rounded resize-none transition-colors"
+            placeholder="Describe your service to passengers..."
+          />
+        </div>
+      </div>
+
+      {/* Vehicle/Boat Images */}
+      <div className="bg-[#081221] border border-white/10 rounded-xl p-6 space-y-4">
+        <p className="ui-label text-[9px] text-gold tracking-[0.2em]">VEHICLE / BOAT PHOTOS</p>
+        <div className="grid grid-cols-3 gap-3">
+          {vehicleImages.map((url, i) => (
+            <div key={i} className="relative aspect-video rounded-lg overflow-hidden border border-white/10 group">
+              <img src={url} alt="" className="w-full h-full object-cover" />
+              <button
+                onClick={() => setVehicleImages(prev => prev.filter((_, idx) => idx !== i))}
+                className="absolute top-1 right-1 bg-red-500/80 text-white rounded-full w-5 h-5 items-center justify-center hidden group-hover:flex text-xs"
+              >×</button>
+            </div>
+          ))}
+          <label className="aspect-video rounded-lg border border-dashed border-white/20 flex flex-col items-center justify-center cursor-pointer hover:border-gold/40 transition-colors">
+            {uploadingVehicle ? (
+              <Loader2 size={20} className="text-muted animate-spin" />
+            ) : (
+              <>
+                <Upload size={20} className="text-muted mb-1" />
+                <span className="ui-label text-[8px] text-muted">ADD PHOTO</span>
+              </>
+            )}
+            <input type="file" accept="image/*" multiple onChange={handleVehicleUpload} className="hidden" />
+          </label>
+        </div>
+      </div>
+
+      {/* Permit Upload */}
+      <div className="bg-[#081221] border border-white/10 rounded-xl p-6 space-y-4">
+        <p className="ui-label text-[9px] text-gold tracking-[0.2em]">BUSINESS PERMIT / LICENSE</p>
+        {permitImage ? (
+          <div className="relative rounded-lg overflow-hidden border border-white/10 group">
+            <img src={permitImage} alt="Permit" className="w-full max-h-48 object-contain bg-[#050B14]" />
+            <button
+              onClick={() => setPermitImage('')}
+              className="absolute top-2 right-2 bg-red-500/80 text-white rounded px-2 py-1 ui-label text-[8px] opacity-0 group-hover:opacity-100 transition-opacity"
+            >REMOVE</button>
+          </div>
+        ) : (
+          <label className="flex flex-col items-center justify-center border border-dashed border-white/20 rounded-lg p-8 cursor-pointer hover:border-gold/40 transition-colors">
+            {uploadingPermit ? (
+              <Loader2 size={24} className="text-muted animate-spin" />
+            ) : (
+              <>
+                <Image size={24} className="text-muted mb-2" />
+                <span className="ui-label text-[9px] text-muted">UPLOAD PERMIT / LICENSE IMAGE</span>
+                <span className="ui-label text-[8px] text-muted/50 mt-1">JPG, PNG accepted</span>
+              </>
+            )}
+            <input type="file" accept="image/*" onChange={handlePermitUpload} className="hidden" />
+          </label>
+        )}
+      </div>
+
+      <button
+        onClick={handleSave}
+        disabled={isSaving}
+        className="w-full py-4 bg-gold text-ink ui-label text-[10px] font-bold tracking-[0.2em] hover:bg-[#D4AF37] disabled:opacity-50 transition-all rounded"
+      >
+        {isSaving ? 'SAVING...' : saved ? '✓ SAVED!' : 'SAVE PROFILE'}
+      </button>
+    </div>
+  );
+};
+
+// ============================================
+// OPERATOR BOOKINGS LIST
 // ============================================
 const OperatorBookingsView = ({ bookings, routes, onUpdateStatus }: { bookings: Booking[]; routes: Route[]; onUpdateStatus: (id: string, status: BookingStatus) => void | Promise<void> }) => {
   const [updatingIds, setUpdatingIds] = React.useState<Set<string>>(new Set());
 
-  // Sort: Pending first, then by date
   const pendingBookings = bookings.filter(b => b.status === 'PENDING').sort((a, b) => 
     new Date(a.date).getTime() - new Date(b.date).getTime()
   );
@@ -64,21 +243,21 @@ const OperatorBookingsView = ({ bookings, routes, onUpdateStatus }: { bookings: 
     <div className="space-y-3 pb-8">
       {pendingBookings.map(booking => {
         const isUpdating = updatingIds.has(booking.id);
-        const route = routes.find(r => r.id === booking.routeId);
+        const route = routes.find(r => r.id === (booking as any).route_id || r.id === booking.routeId);
         return (
           <div key={booking.id} className="bg-[#081221] border border-gold/20 rounded-xl p-4 shadow-[0_0_15px_-5px_rgba(212,175,55,0.15)]">
             <div className="flex justify-between items-start mb-3">
               <div>
-                <h3 className="text-white font-semibold text-sm">{booking.customerName || (booking as any).customer_name || 'Guest'}</h3>
-                <p className="ui-label text-[9px] text-muted font-mono mt-0.5">REF: {(booking as any).reference_code || booking.referenceCode || booking.id.slice(0, 8)}</p>
+                <h3 className="text-white font-semibold text-sm">{(booking as any).customer_name || booking.customerName || 'Guest'}</h3>
+                <p className="ui-label text-[9px] text-muted font-mono mt-0.5">REF: {(booking as any).reference_code || booking.id.slice(0, 8)}</p>
               </div>
               <span className="ui-label text-[8px] px-2 py-1 rounded-full bg-gold/10 text-gold border border-gold/30 tracking-wider">PENDING</span>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-2 gap-x-4 mb-3 text-xs text-muted">
               <div className="flex items-center gap-2"><MapPin size={13} className="text-gold/60 shrink-0" /><span className="truncate">{route ? `${route.from} → ${route.to}` : 'Unknown Route'}</span></div>
-              <div className="flex items-center gap-2"><Calendar size={13} className="text-gold/60 shrink-0" /><span>{new Date(booking.date).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })} • {route?.departureTime || '--'}</span></div>
+              <div className="flex items-center gap-2"><Calendar size={13} className="text-gold/60 shrink-0" /><span>{new Date(booking.date).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })}</span></div>
               <div className="flex items-center gap-2"><UsersIcon size={13} className="text-gold/60 shrink-0" /><span>{booking.seats} Seat{booking.seats > 1 ? 's' : ''}</span></div>
-              <div className="flex items-center gap-2"><CreditCardIcon size={13} className="text-gold/60 shrink-0" /><span>₱{booking.totalPrice || (booking as any).total_price} • <span className="text-emerald-400">Paid</span></span></div>
+              <div className="flex items-center gap-2"><CreditCardIcon size={13} className="text-gold/60 shrink-0" /><span>₱{(booking as any).total_price || booking.totalPrice} • <span className="text-emerald-400">Paid</span></span></div>
             </div>
             <div className="grid grid-cols-2 gap-3 pt-3 border-t border-white/5">
               <button onClick={() => handleUpdate(booking.id, 'CANCELLED')} disabled={isUpdating} className="flex items-center justify-center gap-2 py-2.5 rounded-lg border border-red-400/20 text-red-400 ui-label text-[9px] hover:bg-red-400/10 active:scale-[0.98] transition-all disabled:opacity-50">
@@ -112,8 +291,8 @@ const AdminBookingsView = ({ bookings, onUpdateStatus }: { bookings: Booking[]; 
         <tbody className="divide-y divide-white/5">
           {bookings.map(b => (
             <tr key={b.id} className="hover:bg-white/5 transition-colors">
-              <td className="p-4 ui-label text-[10px] text-white">{b.customerName || (b as any).customer_name || 'Guest'}</td>
-              <td className="p-4 ui-label text-[10px] text-muted font-mono">{b.routeId || (b as any).route_id}</td>
+              <td className="p-4 ui-label text-[10px] text-white">{(b as any).customer_name || b.customerName || 'Guest'}</td>
+              <td className="p-4 ui-label text-[10px] text-muted font-mono">{(b as any).route_id || b.routeId}</td>
               <td className="p-4 ui-label text-[10px] text-muted">{new Date(b.date).toLocaleDateString()}</td>
               <td className="p-4"><span className={`ui-label text-[9px] px-2 py-1 rounded-full ${b.status === 'PENDING' ? 'bg-gold/10 text-gold' : b.status === 'ACCEPTED' || b.status === 'CONFIRMED' ? 'bg-emerald-400/10 text-emerald-400' : 'bg-red-400/10 text-red-400'}`}>{b.status}</span></td>
               <td className="p-4">
@@ -205,20 +384,8 @@ const OperatorsView = ({ operators, onAdd, onEdit, onDelete }: any) => (
 );
 
 // ============================================
-// SETTINGS VIEW (Placeholder)
-// ============================================
-const SettingsView = () => (
-  <div className="bg-[#081221] border border-white/10 p-8 max-w-2xl rounded-xl text-center">
-    <SettingsIcon size={40} className="mx-auto text-muted mb-4" />
-    <h3 className="text-white font-semibold text-lg mb-2">System Settings</h3>
-    <p className="text-muted text-sm">Manage your portal preferences, notification rules, and integrations. Coming soon in the next deploy.</p>
-  </div>
-);
-
-// ============================================
 // MAIN ADMIN DASHBOARD COMPONENT
 // ============================================
-
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ 
   routes, operators, bookings, onUpdateBookingStatus,
   onAddRoute, onEditRoute, onDeleteRoute, onAddOperator, onEditOperator, onDeleteOperator,
@@ -230,14 +397,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [showOperatorModal, setShowOperatorModal] = React.useState(false);
   const [editingItem, setEditingItem] = React.useState<any>(null);
 
-  // --- FIX APPLIED: Using snake_case 'operator_id' to match Supabase schema ---
   const filteredBookings = isOperatorPortal 
-    ? bookings.filter(b => b.operator_id === operatorId)
+    ? bookings.filter(b => (b as any).operator_id === operatorId)
     : bookings;
 
   const filteredRoutes = isOperatorPortal
-    ? routes.filter(r => r.operator_id === operatorId)
+    ? routes.filter(r => (r as any).operator_id === operatorId)
     : routes;
+
+  const currentOperator = operators.find(o => o.id === operatorId);
 
   const sidebarItems = isOperatorPortal ? [
     { id: 'DASHBOARD', label: 'My Dashboard', icon: LayoutDashboard },
@@ -266,20 +434,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           <AdminBookingsView bookings={filteredBookings} onUpdateStatus={onUpdateBookingStatus} />
         );
       case 'ROUTES':
-        return <RoutesView routes={filteredRoutes} onAdd={() => { setEditingItem(null); setShowRouteModal(true); }} onEdit={(r) => { setEditingItem(r); setShowRouteModal(true); }} onDelete={onDeleteRoute} />;
+        return <RoutesView routes={filteredRoutes} onAdd={() => { setEditingItem(null); setShowRouteModal(true); }} onEdit={(r: any) => { setEditingItem(r); setShowRouteModal(true); }} onDelete={onDeleteRoute} />;
       case 'OPERATORS':
-        return <OperatorsView operators={operators} onAdd={() => { setEditingItem(null); setShowOperatorModal(true); }} onEdit={(op) => { setEditingItem(op); setShowOperatorModal(true); }} onDelete={onDeleteOperator} />;
-      case 'PAYMENTS': return <div className="text-muted text-center py-20">Payments Module Placeholder</div>;
-      case 'REPORTS': return <div className="text-muted text-center py-20">Reports Module Placeholder</div>;
-      case 'PASSENGERS': return <div className="text-muted text-center py-20">Passengers Module Placeholder</div>;
-      case 'SETTINGS': return <SettingsView />;
+        return <OperatorsView operators={operators} onAdd={() => { setEditingItem(null); setShowOperatorModal(true); }} onEdit={(op: any) => { setEditingItem(op); setShowOperatorModal(true); }} onDelete={onDeleteOperator} />;
+      case 'PAYMENTS': return <div className="text-muted text-center py-20">Payments Module — Coming Soon</div>;
+      case 'REPORTS': return <div className="text-muted text-center py-20">Reports Module — Coming Soon</div>;
+      case 'PASSENGERS': return <div className="text-muted text-center py-20">Passengers Module — Coming Soon</div>;
+      case 'SETTINGS':
+        return isOperatorPortal ? (
+          <OperatorProfileSettings operator={currentOperator} onUpdate={onEditOperator} />
+        ) : (
+          <div className="text-muted text-center py-20">Admin Settings — Coming Soon</div>
+        );
       default: return null;
     }
   };
 
   return (
     <div className="fixed inset-0 bg-[#050B14] z-[60] flex flex-col lg:flex-row overflow-hidden font-sans">
-      {/* Mobile Header */}
       <header className="lg:hidden h-16 border-b border-white/10 flex items-center justify-between px-4 bg-[#081221] z-50">
         <div className="flex items-baseline">
           <span className="font-display text-sm tracking-[0.2em] text-white uppercase">PALAWAN</span>
@@ -288,7 +460,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         <button onClick={() => setIsSidebarOpen(true)} className="text-white p-2"><Menu size={20} /></button>
       </header>
 
-      {/* Sidebar */}
       <aside className={`fixed lg:relative inset-y-0 left-0 w-64 bg-[#081221] border-r border-white/10 z-40 transform transition-transform duration-300 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
         <div className="p-6 border-b border-white/10 flex items-baseline mb-4">
           <span className="font-display text-base tracking-[0.2em] text-white uppercase">PALAWAN</span>
@@ -315,7 +486,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
       </aside>
 
-      {/* Main Content */}
       <main className="flex-1 overflow-y-auto p-4 lg:p-8 pt-20 lg:pt-6">
         <div className="max-w-5xl mx-auto">
           <motion.div key={activeTab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
@@ -324,7 +494,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
       </main>
 
-      {/* Modals */}
       <AnimatePresence>
         {showRouteModal && (
           <RouteModal route={editingItem} onClose={() => setShowRouteModal(false)} onSave={editingItem ? onEditRoute : onAddRoute} />
@@ -340,7 +509,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 // ============================================
 // MODAL COMPONENTS
 // ============================================
-
 const RouteModal = ({ route, onClose, onSave }: any) => {
   const [formData, setFormData] = React.useState(route || { from: '', to: '', mode: 'SHUTTLE_SHARED', price: 0, departureTime: '', seatsLeft: 12 });
   return (
@@ -353,6 +521,13 @@ const RouteModal = ({ route, onClose, onSave }: any) => {
             <input key={f} placeholder={f.toUpperCase()} value={(formData as any)[f] || ''} onChange={e => setFormData({...formData, [f]: e.target.value})} className="w-full bg-[#050B14] border border-white/10 p-3 ui-label text-[10px] text-white outline-none focus:border-gold rounded" />
           ))}
           <input type="number" placeholder="PRICE" value={formData.price || 0} onChange={e => setFormData({...formData, price: Number(e.target.value)})} className="w-full bg-[#050B14] border border-white/10 p-3 ui-label text-[10px] text-white outline-none focus:border-gold rounded" />
+          <select value={formData.mode} onChange={e => setFormData({...formData, mode: e.target.value})} className="col-span-2 w-full bg-[#050B14] border border-white/10 p-3 ui-label text-[10px] text-white outline-none focus:border-gold rounded">
+            <option value="SHUTTLE_SHARED">Shared Shuttle</option>
+            <option value="SHUTTLE_PRIVATE">Private Shuttle</option>
+            <option value="PRIVATE_4X4">Private 4x4</option>
+            <option value="BANGKA">Bangka Boat</option>
+            <option value="ISLAND_HOPPING">Island Hopping</option>
+          </select>
         </div>
         <div className="flex gap-3">
           <button onClick={onClose} className="flex-1 py-3 border border-white/10 text-muted ui-label text-[10px] hover:text-white">CANCEL</button>
@@ -364,21 +539,23 @@ const RouteModal = ({ route, onClose, onSave }: any) => {
 };
 
 const OperatorModal = ({ operator, onClose, onSave }: any) => {
-  const [formData, setFormData] = React.useState(operator || { name: '', phone: '', type: 'VAN', location: '' });
+  const [formData, setFormData] = React.useState(operator || { name: '', phone: '', whatsapp: '', email: '', type: 'VAN', location: '', description: '' });
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-center justify-center px-4">
       <div className="absolute inset-0 bg-[#050B14]/90 backdrop-blur-sm" onClick={onClose} />
-      <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="bg-[#081221] border border-white/10 p-6 max-w-lg w-full relative z-10 rounded-xl">
+      <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="bg-[#081221] border border-white/10 p-6 max-w-lg w-full relative z-10 rounded-xl max-h-[90vh] overflow-y-auto">
         <h2 className="text-xl text-white font-display italic mb-6">{operator ? 'Edit Operator' : 'New Operator'}</h2>
         <div className="space-y-3 mb-6">
-          {['name', 'phone', 'location'].map(f => (
+          {['name', 'phone', 'whatsapp', 'email', 'location'].map(f => (
             <input key={f} placeholder={f.toUpperCase()} value={(formData as any)[f] || ''} onChange={e => setFormData({...formData, [f]: e.target.value})} className="w-full bg-[#050B14] border border-white/10 p-3 ui-label text-[10px] text-white outline-none focus:border-gold rounded" />
           ))}
           <select value={formData.type} onChange={e => setFormData({...formData, type: e.target.value})} className="w-full bg-[#050B14] border border-white/10 p-3 ui-label text-[10px] text-white outline-none focus:border-gold rounded">
-            <option value="VAN">Van / Shuttle</option>
-            <option value="BOAT">Bangka / Boat</option>
+            <option value="VAN">Van / Shuttle (Land Transport)</option>
+            <option value="BOAT">Bangka / Boat (Island Hopping)</option>
             <option value="PRIVATE">Private Transfer</option>
+            <option value="BOTH">Both Land & Sea</option>
           </select>
+          <textarea placeholder="DESCRIPTION" value={formData.description || ''} onChange={e => setFormData({...formData, description: e.target.value})} rows={3} className="w-full bg-[#050B14] border border-white/10 p-3 ui-label text-[10px] text-white outline-none focus:border-gold rounded resize-none" />
         </div>
         <div className="flex gap-3">
           <button onClick={onClose} className="flex-1 py-3 border border-white/10 text-muted ui-label text-[10px] hover:text-white">CANCEL</button>
