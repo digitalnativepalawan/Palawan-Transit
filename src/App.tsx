@@ -270,6 +270,9 @@ export default function App() {
     const customerName = `Guest ${phone.slice(-4)}`;
     const pinCode = generatePin();
 
+    const isPrivate = currentRoute.mode === 'SHUTTLE_PRIVATE' || currentRoute.mode === 'PRIVATE_4X4';
+    const bookingTotalPrice = isPrivate ? currentRoute.price : currentRoute.price * currentParams.seats;
+
     const newBooking = {
       route_id: currentRoute.id,
       operator_id: currentRoute.operatorId,
@@ -278,7 +281,7 @@ export default function App() {
       status: currentRoute.bookingType === 'INSTANT' ? 'CONFIRMED' : 'PENDING',
       date: bookingDate,
       seats: currentParams.seats,
-      total_price: currentRoute.price * currentParams.seats,
+      total_price: bookingTotalPrice,
       customer_name: customerName,
       customer_email: `${customerName.replace(' ', '').toLowerCase()}@guest.com`,
       customer_phone: phone,
@@ -301,7 +304,7 @@ export default function App() {
         status: currentRoute.bookingType === 'INSTANT' ? 'CONFIRMED' : 'PENDING',
         date: currentParams.date,
         seats: currentParams.seats,
-        total_price: currentRoute.price * currentParams.seats,
+        total_price: bookingTotalPrice,
         customer_name: customerName,
         customer_phone: phone,
       };

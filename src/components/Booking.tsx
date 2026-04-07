@@ -284,6 +284,8 @@ export const BookingModal = ({ route, onClose, onComplete }: { route: Route; onC
     }, 2000);
   };
 
+  const isPrivate = route.mode === 'SHUTTLE_PRIVATE' || route.mode === 'PRIVATE_4X4';
+
   const getDisplayPrice = () => {
     if (isIslandHopping && tourDetails) {
       if (groupType === 'SHARED') {
@@ -292,6 +294,7 @@ export const BookingModal = ({ route, onClose, onComplete }: { route: Route; onC
         return `₱${tourDetails.private_boat_flat_rate} (flat rate)`;
       }
     }
+    if (isPrivate) return `₱${route.price} (fixed rate)`;
     return `₱${route.price} x ${seats} seats`;
   };
 
@@ -303,6 +306,7 @@ export const BookingModal = ({ route, onClose, onComplete }: { route: Route; onC
         return totalPrice + 50;
       }
     }
+    if (isPrivate) return route.price + 50;
     return route.price * seats + 50;
   };
 
