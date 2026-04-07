@@ -279,23 +279,31 @@ export const BookingModal = ({ route, onClose, onComplete }: { route: Route; onC
       const pinCode = Math.floor(100000 + Math.random() * 900000).toString();
       const normalizedPhone = phone.replace(/\D/g, '');
       const lastFour = normalizedPhone.slice(-4);
+      const bookingDate = route.departureTime
+        ? new Date().toISOString().split('T')[0]
+        : new Date().toISOString().split('T')[0];
 
-      const { error } = await supabase.from('bookings').insert({
-        route_id: route.id,
-        operator_id: route.operator_id ?? null,
+      const insertData: any = {
         reference_code: refCode,
         pin_code: pinCode,
-        status: 'PENDING',
-        date: route.date,
+        status: 'ACCEPTED',
+        date: bookingDate,
         seats: seats,
         total_price: getFinalTotal(),
         customer_name: customerName.trim() || `Guest ${lastFour}`,
         customer_email: customerEmail.trim() || `guest${lastFour}@guest.com`,
         customer_phone: normalizedPhone,
-      });
+      };
+
+      // Only add route_id and operator_id if they exist on the route object
+      if (route.id) insertData.route_id = route.id;
+      if ((route as any).operator_id) insertData.operator_id = (route as any).operator_id;
+
+      const { error } = await supabase.from('bookings').insert(insertData);
 
       if (error) {
         console.error('Supabase insert error:', error);
+        alert(`Booking failed: ${error.message}`);
         setLoading(false);
         return;
       }
@@ -426,7 +434,10 @@ export const BookingModal = ({ route, onClose, onComplete }: { route: Route; onC
               </div>
               <div className="space-y-1">
                 <label className="ui-label text-muted">SPECIAL REQUESTS</label>
-                <textarea placeholder="Dietary needs, extra luggage..." className="w-full bg-surface border-b border-border px-4 py-4 text-white focus:border-gold focus:outline-none transition-colors h-24 resize-none" />
+                <textarea
+                  placeholder="Dietary needs, extra luggage..."
+                  className="w-full bg-surface border-b border-border px-4 py-4 text-white focus:border-gold focus:outline-none transition-colors h-24 resize-none"
+                />
               </div>
               <button
                 onClick={() => setStep(2)}
