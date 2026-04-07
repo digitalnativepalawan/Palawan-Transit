@@ -4,7 +4,7 @@ import {
   LayoutDashboard, BookOpen, Map, Users, CreditCard, BarChart3, 
   UserCircle, Settings as SettingsIcon, Check, X, Plus, 
   MapPin, Calendar, Users as UsersIcon, CreditCard as CreditCardIcon, 
-  Loader2, Menu, Trash2, Edit2, Upload, Image
+  Loader2, Menu, Trash2, Edit2, Upload, Image, Copy
 } from 'lucide-react';
 import { Route, Operator, Booking, BookingStatus } from '../types';
 import { supabase } from '../lib/supabase';
@@ -62,7 +62,7 @@ const OperatorProfileSettings = ({ operator, onUpdate }: { operator: any; onUpda
     setUploadingVehicle(true);
     const urls: string[] = [];
     for (const file of files) {
-      const url = await uploadImage(file, 'operator-images');
+      const url = await uploadImage(file, 'vehicle-photos');
       if (url) urls.push(url);
     }
     setVehicleImages(prev => [...prev, ...urls]);
@@ -100,7 +100,6 @@ const OperatorProfileSettings = ({ operator, onUpdate }: { operator: any; onUpda
     <div className="space-y-6 max-w-2xl">
       <h2 className="text-2xl text-white font-display italic">Operator Profile</h2>
 
-      {/* Basic Info */}
       <div className="bg-[#081221] border border-white/10 rounded-xl p-6 space-y-4">
         <p className="ui-label text-[9px] text-gold tracking-[0.2em]">BASIC INFORMATION</p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -146,7 +145,6 @@ const OperatorProfileSettings = ({ operator, onUpdate }: { operator: any; onUpda
         </div>
       </div>
 
-      {/* Vehicle/Boat Images */}
       <div className="bg-[#081221] border border-white/10 rounded-xl p-6 space-y-4">
         <p className="ui-label text-[9px] text-gold tracking-[0.2em]">VEHICLE / BOAT PHOTOS</p>
         <div className="grid grid-cols-3 gap-3">
@@ -173,7 +171,6 @@ const OperatorProfileSettings = ({ operator, onUpdate }: { operator: any; onUpda
         </div>
       </div>
 
-      {/* Permit Upload */}
       <div className="bg-[#081221] border border-white/10 rounded-xl p-6 space-y-4">
         <p className="ui-label text-[9px] text-gold tracking-[0.2em]">BUSINESS PERMIT / LICENSE</p>
         {permitImage ? (
@@ -360,28 +357,85 @@ const RoutesView = ({ routes, onAdd, onEdit, onDelete }: any) => (
 );
 
 // ============================================
-// OPERATORS VIEW
+// OPERATORS VIEW — WITH PASSKEY VISIBLE TO ADMIN
 // ============================================
-const OperatorsView = ({ operators, onAdd, onEdit, onDelete }: any) => (
-  <div className="space-y-6">
-    <div className="flex justify-between items-center">
-      <h2 className="text-2xl text-white font-display italic">Operator Directory</h2>
-      <button onClick={onAdd} className="bg-gold text-ink px-5 py-2.5 ui-label text-[9px] font-bold tracking-[0.2em] flex items-center gap-2"><Plus size={14} /> ADD OPERATOR</button>
-    </div>
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {operators.map((op: any) => (
-        <div key={op.id} className="bg-[#081221] border border-white/10 p-5 rounded-xl">
-          <h3 className="text-white font-semibold text-sm">{op.name}</h3>
-          <p className="ui-label text-[9px] text-muted mt-1">{op.phone} • {op.type} • {op.location}</p>
-          <div className="flex gap-2 mt-3">
-            <button onClick={() => onEdit(op)} className="ui-label text-[8px] text-gold hover:text-white">EDIT</button>
-            <button onClick={() => onDelete(op.id)} className="ui-label text-[8px] text-red-400 hover:text-white">DELETE</button>
+const OperatorsView = ({ operators, onAdd, onEdit, onDelete }: any) => {
+  const [copiedId, setCopiedId] = React.useState<string | null>(null);
+
+  const handleCopy = (id: string, passkey: string) => {
+    navigator.clipboard.writeText(passkey || '');
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl text-white font-display italic">Operator Directory</h2>
+        <button onClick={onAdd} className="bg-gold text-ink px-5 py-2.5 ui-label text-[9px] font-bold tracking-[0.2em] flex items-center gap-2"><Plus size={14} /> ADD OPERATOR</button>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {operators.map((op: any) => (
+          <div key={op.id} className="bg-[#081221] border border-white/10 p-5 rounded-xl hover:border-white/20 transition-all">
+            
+            {/* Header */}
+            <div className="flex justify-between items-start mb-3">
+              <div>
+                <h3 className="text-white font-semibold text-sm">{op.name}</h3>
+                <p className="ui-label text-[9px] text-muted mt-0.5">{op.phone}</p>
+                <p className="ui-label text-[9px] text-muted">{op.location}</p>
+              </div>
+              <span className={`ui-label text-[8px] px-2 py-1 rounded-full shrink-0 ${
+                op.type === 'BOAT' 
+                  ? 'bg-blue-400/10 text-blue-400 border border-blue-400/20' 
+                  : op.type === 'BOTH'
+                  ? 'bg-purple-400/10 text-purple-400 border border-purple-400/20'
+                  : 'bg-gold/10 text-gold border border-gold/20'
+              }`}>
+                {op.type === 'BOAT' ? 'ISLAND HOPPING' : op.type === 'BOTH' ? 'LAND & SEA' : 'LAND TRANSPORT'}
+              </span>
+            </div>
+
+            {/* Passkey Box */}
+            <div className="bg-[#050B14] border border-white/5 rounded-lg p-3 mb-3 flex items-center justify-between">
+              <div>
+                <p className="ui-label text-[7px] text-muted tracking-[0.2em] mb-1">PASSKEY</p>
+                <p className="font-mono text-[11px] text-gold tracking-wider">
+                  {op.passkey || <span className="text-muted italic text-[9px]">not set</span>}
+                </p>
+              </div>
+              {op.passkey && (
+                <button
+                  onClick={() => handleCopy(op.id, op.passkey)}
+                  className="flex items-center gap-1 ui-label text-[8px] text-muted hover:text-gold transition-colors px-2 py-1 rounded border border-white/5 hover:border-gold/20"
+                >
+                  <Copy size={11} />
+                  {copiedId === op.id ? 'COPIED!' : 'COPY'}
+                </button>
+              )}
+            </div>
+
+            {/* Vehicle Photos */}
+            {op.vehicle_photos?.length > 0 && (
+              <div className="flex gap-1 mb-3 overflow-hidden rounded">
+                {op.vehicle_photos.slice(0, 3).map((url: string, i: number) => (
+                  <img key={i} src={url} alt="" className="w-1/3 aspect-video object-cover rounded" />
+                ))}
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex gap-2 pt-2 border-t border-white/5">
+              <button onClick={() => onEdit(op)} className="ui-label text-[8px] text-gold hover:text-white transition-colors">EDIT</button>
+              <span className="text-white/10">|</span>
+              <button onClick={() => onDelete(op.id)} className="ui-label text-[8px] text-red-400 hover:text-white transition-colors">DELETE</button>
+            </div>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 // ============================================
 // MAIN ADMIN DASHBOARD COMPONENT
