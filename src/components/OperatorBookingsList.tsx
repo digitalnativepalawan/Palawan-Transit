@@ -1,128 +1,127 @@
 import React, { useState } from 'react';
-import { Check, X, MapPin, Calendar, Users, CreditCard, Loader2 } from 'lucide-react';
-import { Booking, Route, BookingStatus } from '../types';
+import { supabase } from '../lib/supabase';
+import { Check, Copy, User, Phone, Mail, MapPin, FileText } from 'lucide-react';
 
-interface OperatorBookingsListProps {
-  bookings: Partial<Booking & Record<string, any>>[];
-  routes: Route[];
-  operatorId?: string;
-  onUpdateStatus: (id: string, status: BookingStatus) => void | Promise<void>;
-}
+export const OperatorOnboarding: React.FC<{ onComplete?: () => void }> = ({ onComplete }) => {
+  const [step, setStep] = useState<'form' | 'success'>('form');
+  const [isSaving, setIsSaving] = useState(false);
+  const [operatorId, setOperatorId] = useState('');
+  const [copied, setCopied] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '', phone: '', whatsapp: '', email: '', description: '', location: ''
+  });
 
-export const OperatorBookingsList: React.FC<OperatorBookingsListProps> = ({
-  bookings,
-  routes,
-  operatorId,
-  onUpdateStatus
-}) => {
-  const [updatingIds, setUpdatingIds] = useState<Set<string>>(new Set());
-
-  // FIX: Use snake_case 'operator_id' for filtering as per Supabase schema
-  const pendingBookings = bookings
-    .filter(b => b.operator_id === operatorId && b.status === 'PENDING')
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
-  const handleStatusUpdate = async (id: string, status: BookingStatus) => {
-    setUpdatingIds(prev => new Set(prev).add(id));
+  const handleSubmit = async () => {
+    if (!formData.name || !formData.phone) return;
+    setIsSaving(true);
     try {
-      await onUpdateStatus(id, status);
+      const { data, error } = await supabase
+        .from('operators')
+        .insert([formData])
+        .select()
+        .single();
+      if (error) throw error;
+      setOperatorId(data.id);
+      setStep('success');
+    } catch (err) {
+      console.error(err);
     } finally {
-      setUpdatingIds(prev => {
-        const next = new Set(prev);
-        next.delete(id);
-        return next;
-      });
+      setIsSaving(false);
     }
   };
 
-  // FIX: Use snake_case 'route_id' for lookup
-  const getRouteTitle = (routeId?: string) => {
-    const r = routes.find(rt => rt.id === routeId);
-    return r ? `${r.from} → ${r.to}` : 'Unknown Route';
+  const handleCopy = () => {
+    navigator.clipboard.writeText(operatorId);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
-  if (pendingBookings.length === 0) {
+  if (step === 'success') {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-center px-4">
-        <div className="w-16 h-16 bg-[#081221] border border-white/10 rounded-full flex items-center justify-center mb-4">
-          <Check size={24} className="text-muted" />
+      <div className="min-h-screen bg-[#050B14] flex items-center justify-center px-4">
+        <div className="max-w-md w-full bg-[#081221] border border-gold/30 rounded-xl p-8 text-center">
+          <div className="w-16 h-16 bg-gold/10 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Check className="w-8 h-8 text-gold" />
+          </div>
+          <h2 className="text-2xl text-white font-display italic mb-2">Welcome Aboard!</h2>
+          <p className="text-sm text-muted mb-6">Your operator profile has been created. Save your passkey below — you'll need it to access your portal.</p>
+          
+          <div className="bg-[#050B14] border border-white/10 rounded-lg p-4 mb-6">
+            <p className="ui-label text-[9px] text-muted tracking-[0.2em] mb-2">YOUR OPERATOR PASSKEY</p>
+            <p className="font-mono text-xs text-gold break-all">{operatorId}</p>
+          </div>
+
+          <button
+            onClick={handleCopy}
+            className="w-full flex items-center justify-center gap-2 py-3 bg-gold text-ink ui-label text-[10px] font-bold tracking-[0.2em] rounded-lg hover:bg-[#D4AF37] transition-all mb-3"
+          >
+            <Copy className="w-4 h-4" />
+            {copied ? 'COPIED!' : 'COPY PASSKEY'}
+          </button>
+
+          {onComplete && (
+            <button
+              onClick={onComplete}
+              className="w-full py-3 border border-white/10 text-muted ui-label text-[10px] tracking-[0.2em] rounded-lg hover:text-white hover:border-white/20 transition-all"
+            >
+              GO TO MY PORTAL
+            </button>
+          )}
         </div>
-        <p className="ui-label text-[10px] text-muted mb-2 tracking-[0.2em]">ALL CAUGHT UP</p>
-        <p className="text-xs text-muted/60 max-w-xs">No pending bookings require your attention. New requests will appear here instantly.</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-3 pb-20 lg:pb-6">
-      {pendingBookings.map(booking => {
-        const isUpdating = updatingIds.has(booking.id);
-        const routeId = booking.route_id; // Use snake_case from DB
+    <div className="min-h-screen bg-[#050B14] flex items-center justify-center px-4">
+      <div className="max-w-lg w-full">
+        <div className="text-center mb-8">
+          <h1 className="font-display text-2xl text-white italic mb-2">Join PALAWAN.TRANSIT</h1>
+          <p className="text-sm text-muted">Register your transport business</p>
+        </div>
 
-        return (
-          <div 
-            key={booking.id} 
-            className="bg-[#081221] border border-gold/30 shadow-[0_0_15px_-5px_rgba(212,175,55,0.15)] rounded-xl p-4 lg:p-5 transition-all duration-200"
-          >
-            {/* Header: Passenger & Status */}
-            <div className="flex justify-between items-start mb-4">
-              <div>
-                <h3 className="text-white font-semibold text-sm tracking-wide truncate">
-                  {booking.customerName || booking.customer_name || 'Guest Passenger'}
-                </h3>
-                <p className="ui-label text-[9px] text-muted mt-0.5 font-mono">
-                  REF: {booking.reference_code || booking.referenceCode || booking.id.slice(0, 8).toUpperCase()}
-                </p>
-              </div>
-              <span className="ui-label text-[8px] px-2 py-1 rounded-full bg-gold/10 text-gold border border-gold/40 tracking-wider">
-                PENDING
-              </span>
+        <div className="bg-[#081221] border border-white/10 rounded-xl p-6 space-y-4">
+          {[
+            { field: 'name', label: 'COMPANY NAME', icon: User, required: true },
+            { field: 'phone', label: 'PHONE NUMBER', icon: Phone, required: true },
+            { field: 'whatsapp', label: 'WHATSAPP NUMBER', icon: Phone, required: false },
+            { field: 'email', label: 'EMAIL ADDRESS', icon: Mail, required: false },
+            { field: 'location', label: 'BASE LOCATION', icon: MapPin, required: false },
+          ].map(({ field, label, icon: Icon, required }) => (
+            <div key={field} className="space-y-1">
+              <label className="ui-label text-[8px] text-muted tracking-[0.2em] flex items-center gap-1">
+                <Icon className="w-3 h-3" /> {label} {required && <span className="text-gold">*</span>}
+              </label>
+              <input
+                value={(formData as any)[field]}
+                onChange={e => setFormData({ ...formData, [field]: e.target.value })}
+                className="w-full bg-[#050B14] border border-white/10 p-3 ui-label text-[10px] text-white outline-none focus:border-gold rounded-lg transition-colors"
+                placeholder={`Enter ${label.toLowerCase()}`}
+              />
             </div>
+          ))}
 
-            {/* Details Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-2 gap-x-4 mb-4 text-xs text-muted">
-              <div className="flex items-center gap-2">
-                <MapPin size={13} className="text-gold/60 shrink-0" />
-                <span className="truncate">{getRouteTitle(routeId as string)}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Calendar size={13} className="text-gold/60 shrink-0" />
-                <span>
-                  {booking.date ? new Date(booking.date).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }) : 'No date'}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Users size={13} className="text-gold/60 shrink-0" />
-                <span>{booking.seats} Seat{booking.seats > 1 ? 's' : ''}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <CreditCard size={13} className="text-gold/60 shrink-0" />
-                <span>₱{booking.totalPrice || booking.total_price} • <span className="text-emerald-400">Paid</span></span>
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="grid grid-cols-2 gap-3 pt-3 border-t border-white/5">
-              <button
-                onClick={() => handleStatusUpdate(booking.id, 'CANCELLED')}
-                disabled={isUpdating}
-                className="flex items-center justify-center gap-2 py-2.5 rounded-lg border border-red-400/20 bg-transparent text-red-400 ui-label text-[9px] hover:bg-red-400/10 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isUpdating ? <Loader2 size={13} className="animate-spin" /> : <X size={14} />}
-                REJECT
-              </button>
-              <button
-                onClick={() => handleStatusUpdate(booking.id, 'ACCEPTED')}
-                disabled={isUpdating}
-                className="flex items-center justify-center gap-2 py-2.5 rounded-lg bg-gold text-ink ui-label text-[9px] font-bold hover:bg-[#D4AF37] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isUpdating ? <Loader2 size={13} className="animate-spin" /> : <Check size={14} />}
-                CONFIRM
-              </button>
-            </div>
+          <div className="space-y-1">
+            <label className="ui-label text-[8px] text-muted tracking-[0.2em] flex items-center gap-1">
+              <FileText className="w-3 h-3" /> DESCRIPTION
+            </label>
+            <textarea
+              value={formData.description}
+              onChange={e => setFormData({ ...formData, description: e.target.value })}
+              className="w-full bg-[#050B14] border border-white/10 p-3 ui-label text-[10px] text-white outline-none focus:border-gold rounded-lg resize-none h-20 transition-colors"
+              placeholder="Tell passengers about your service..."
+            />
           </div>
-        );
-      })}
+
+          <button
+            onClick={handleSubmit}
+            disabled={isSaving || !formData.name || !formData.phone}
+            className="w-full py-4 bg-gold text-ink ui-label text-[10px] font-bold tracking-[0.2em] rounded-lg hover:bg-[#D4AF37] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed mt-2"
+          >
+            {isSaving ? 'CREATING PROFILE...' : 'CREATE OPERATOR PROFILE'}
+          </button>
+        </div>
+      </div>
     </div>
   );
 };
