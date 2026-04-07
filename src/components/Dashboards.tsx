@@ -39,6 +39,7 @@ const OperatorProfileSettings = ({ operator, onUpdate }: { operator: any; onUpda
     location: operator?.location || '',
     description: operator?.description || '',
     type: operator?.type || 'VAN',
+    passkey: operator?.passkey || '',
   });
   const [isSaving, setIsSaving] = React.useState(false);
   const [saved, setSaved] = React.useState(false);
@@ -86,6 +87,7 @@ const OperatorProfileSettings = ({ operator, onUpdate }: { operator: any; onUpda
       vehicle_photos: vehicleImages,
       images: vehicleImages,
       permits: permitImage ? [permitImage] : [],
+      passkey: formData.passkey || '',
     };
     const { error } = await supabase.from('operators').update(updateData).eq('id', operator.id);
     if (!error) {
@@ -131,6 +133,15 @@ const OperatorProfileSettings = ({ operator, onUpdate }: { operator: any; onUpda
               <option value="PRIVATE">Private Transfer</option>
               <option value="BOTH">Both Land & Sea</option>
             </select>
+          </div>
+          <div className="space-y-1">
+            <label className="ui-label text-[8px] text-muted tracking-[0.2em]">PORTAL PASSKEY</label>
+            <input
+              value={formData.passkey}
+              onChange={e => setFormData({ ...formData, passkey: e.target.value })}
+              placeholder="e.g. OP123"
+              className="w-full bg-[#050B14] border border-white/10 p-3 ui-label text-[10px] text-gold outline-none focus:border-gold rounded transition-colors font-mono tracking-wider"
+            />
           </div>
         </div>
         <div className="space-y-1">
@@ -593,7 +604,7 @@ const RouteModal = ({ route, onClose, onSave }: any) => {
 };
 
 const OperatorModal = ({ operator, onClose, onSave }: any) => {
-  const [formData, setFormData] = React.useState(operator || { name: '', phone: '', whatsapp: '', email: '', type: 'VAN', location: '', description: '' });
+  const [formData, setFormData] = React.useState(operator || { name: '', phone: '', whatsapp: '', email: '', type: 'VAN', location: '', description: '', passkey: '' });
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-center justify-center px-4">
       <div className="absolute inset-0 bg-[#050B14]/90 backdrop-blur-sm" onClick={onClose} />
@@ -610,6 +621,7 @@ const OperatorModal = ({ operator, onClose, onSave }: any) => {
             <option value="BOTH">Both Land & Sea</option>
           </select>
           <textarea placeholder="DESCRIPTION" value={formData.description || ''} onChange={e => setFormData({...formData, description: e.target.value})} rows={3} className="w-full bg-[#050B14] border border-white/10 p-3 ui-label text-[10px] text-white outline-none focus:border-gold rounded resize-none" />
+          <input placeholder="PASSKEY (e.g. OP123)" value={formData.passkey || ''} onChange={e => setFormData({...formData, passkey: e.target.value})} className="w-full bg-[#050B14] border border-white/10 p-3 ui-label text-[10px] text-gold outline-none focus:border-gold rounded font-mono tracking-wider" />
         </div>
         <div className="flex gap-3">
           <button onClick={onClose} className="flex-1 py-3 border border-white/10 text-muted ui-label text-[10px] hover:text-white">CANCEL</button>

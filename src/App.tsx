@@ -47,7 +47,7 @@ export default function App() {
       
       const { data: operatorsData, error: operatorsError } = await supabase
         .from('operators')
-        .select('id, name, phone, type, location, rating, whatsapp, email, description, images, vehicle_photos, permits');
+        .select('id, name, phone, type, location, rating, whatsapp, email, description, images, vehicle_photos, permits, passkey');
       
       if (!operatorsError && operatorsData) {
         setOperators(operatorsData as Operator[]);
@@ -447,6 +447,7 @@ export default function App() {
         images: op.images,
         permits: op.permits,
         vehicle_photos: op.vehicle_photos,
+        passkey: op.passkey || '',
       })
       .eq('id', op.id);
     
