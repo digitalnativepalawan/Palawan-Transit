@@ -18,7 +18,7 @@ export const OperatorOnboarding: React.FC<{ onComplete?: () => void }> = ({ onCo
       const { data, error } = await supabase
         .from('operators')
         .insert([formData])
-        .select()
+        .select('id, name, phone, type, location, rating, whatsapp, email, description, images, vehicle_photos, permits')
         .single();
       if (error) throw error;
       setOperatorId(data.id);

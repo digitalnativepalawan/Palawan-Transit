@@ -15,7 +15,7 @@ import { OperatorOnboarding } from './components/OperatorOnboarding';
 import { supabase } from './lib/supabase';
 import { Route, Operator, Booking, BookingStatus, TransportMode } from './types';
 
-type Page = 'LANDING' | 'RESULTS' | 'CONFIRMATION' | 'ADMIN' | 'DETAILS' | 'OPERATOR_PROFILE' | 'OPERATOR_PORTAL' | 'OPERATOR_REGISTER';
+type Page = 'LANDING' | 'RESULTS' | 'CONFIRMATION' | 'ADMIN' | 'DETAILS' | 'OPERATOR_PROFILE' | 'OPERATOR_PORTAL' | 'OPERATOR_REGISTER' | 'CONFIRM_BOOKING';
 
 export default function App() {
   const [page, setPage] = React.useState<Page>('LANDING');
@@ -34,6 +34,8 @@ export default function App() {
   const [operators, setOperators] = React.useState<Operator[]>([]);
   const [bookings, setBookings] = React.useState<Booking[]>([]);
   const [loading, setLoading] = React.useState(true);
+  const [confirmMessage, setConfirmMessage] = React.useState<string>('');
+  const [confirmError, setConfirmError] = React.useState<string>('');
 
   const generatePin = () => {
     return Math.floor(100000 + Math.random() * 900000).toString();
@@ -45,7 +47,7 @@ export default function App() {
       
       const { data: operatorsData, error: operatorsError } = await supabase
         .from('operators')
-        .select('*');
+        .select('id, name, phone, type, location, rating, whatsapp, email, description, images, vehicle_photos, permits');
       
       if (!operatorsError && operatorsData) {
         setOperators(operatorsData as Operator[]);
@@ -109,6 +111,57 @@ export default function App() {
     setModalTitle(title);
     setShowPasskeyModal(true);
   };
+
+  // Detect if URL is a confirmation link when page loads
+  React.useEffect(() => {
+    const path = window.location.pathname;
+    const match = path.match(/\/confirm\/([a-f0-9-]+)/);
+    if (match) {
+      const bookingId = match[1];
+      const token = new URLSearchParams(window.location.search).get('token');
+      
+      const confirmBooking = async () => {
+        const { data: booking, error } = await supabase
+          .from('bookings')
+          .select('id, reference_code, status')
+          .eq('id', bookingId)
+          .single();
+        
+        if (error || !booking) {
+          setConfirmError('Booking not found.');
+          setPage('CONFIRM_BOOKING');
+          return;
+        }
+        
+        if (booking.reference_code !== token) {
+          setConfirmError('Invalid confirmation link.');
+          setPage('CONFIRM_BOOKING');
+          return;
+        }
+        
+        if (booking.status === 'CONFIRMED') {
+          setConfirmMessage('This booking is already confirmed.');
+          setPage('CONFIRM_BOOKING');
+          return;
+        }
+        
+        const { error: updateError } = await supabase
+          .from('bookings')
+          .update({ status: 'CONFIRMED' })
+          .eq('id', bookingId);
+        
+        if (updateError) {
+          setConfirmError('Failed to confirm booking. Try again.');
+        } else {
+          setBookings(prev => prev.map(b => b.id === bookingId ? { ...b, status: 'CONFIRMED' } : b));
+          setConfirmMessage('Booking confirmed! The customer has been notified.');
+        }
+        setPage('CONFIRM_BOOKING');
+      };
+      
+      confirmBooking();
+    }
+  }, []);
 
   const verifyPasskey = async () => {
     const normalizedPasskey = passkey.trim().toUpperCase();
@@ -357,7 +410,7 @@ export default function App() {
         vehicle_photos: op.vehicle_photos || [],
         passkey: op.passkey || '',
       }])
-      .select()
+      .select('id, name, phone, type, location, rating, whatsapp, email, description, images, vehicle_photos, permits')
       .single();
     
     if (!error && data) {
@@ -701,6 +754,42 @@ export default function App() {
           </motion.main>
         )}
 
+        {page === 'CONFIRM_BOOKING' && (
+          <motion.main
+            key="confirm-booking"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="min-h-screen flex flex-col items-center justify-center px-6 text-center pt-20"
+          >
+            <div className="max-w-md w-full">
+              {confirmError ? (
+                <>
+                  <div className="w-20 h-20 bg-red-400/20 rounded-full flex items-center justify-center mx-auto mb-8 border border-red-400/30">
+                    <span className="text-red-400 text-5xl font-bold">!</span>
+                  </div>
+                  <h1 className="text-3xl text-white italic mb-4">Confirmation Failed</h1>
+                  <p className="text-muted mb-8">{confirmError}</p>
+                </>
+              ) : (
+                <>
+                  <div className="w-20 h-20 bg-success/20 rounded-full flex items-center justify-center mx-auto mb-8 border border-success/30">
+                    <Check size={40} className="text-success" />
+                  </div>
+                  <h1 className="text-3xl text-white italic mb-4">Booking Confirmed</h1>
+                  <p className="text-muted mb-8">{confirmMessage}</p>
+                </>
+              )}
+              <button 
+                onClick={() => { window.location.href = '/'; }}
+                className="w-full border border-border text-white py-5 ui-label tracking-[0.2em] hover:bg-surface transition-colors"
+              >
+                RETURN TO HOME
+              </button>
+            </div>
+          </motion.main>
+        )}
+
         {page === 'CONFIRMATION' && (
           <motion.main
             key="confirmation"
@@ -759,7 +848,18 @@ export default function App() {
                     if (booking) {
                       const op = operators.find(o => o.id === booking.operator_id);
                       if (op && op.whatsapp) {
-                        const message = `New Booking! Reference: ${booking.reference_code} | PIN: ${bookingPin} | Passengers: ${searchParams?.seats || 1}`;
+                        const confirmUrl = `${window.location.origin}/confirm/${booking.id}?token=${booking.reference_code}`;
+                        const message = `🚐 NEW BOOKING — Palawan Transit
+
+Reference: ${booking.reference_code}
+PIN: ${bookingPin}
+Route: ${searchParams?.from} → ${searchParams?.to}
+Date: ${searchParams?.date}
+Seats: ${searchParams?.seats || 1}
+Customer: ${booking.customer_name}
+
+Tap this link to confirm the booking:
+${confirmUrl}`;
                         window.open(`https://wa.me/${op.whatsapp}?text=${encodeURIComponent(message)}`, '_blank');
                       }
                     }
