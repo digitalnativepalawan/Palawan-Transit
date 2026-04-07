@@ -183,7 +183,7 @@ const JoinAsOperatorModal = ({ onClose }: { onClose: () => void }) => {
     setUploadingVehicle(true);
     const urls: string[] = [];
     for (const file of files) {
-      const url = await uploadImage(file, 'operator-images');
+    const url = await uploadImage(file, 'vehicle-photos');
       if (url) urls.push(url);
     }
     setVehicleImages(prev => [...prev, ...urls]);
