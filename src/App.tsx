@@ -36,6 +36,7 @@ export default function App() {
   const [loading, setLoading] = React.useState(true);
   const [confirmMessage, setConfirmMessage] = React.useState<string>('');
   const [confirmError, setConfirmError] = React.useState<string>('');
+  const [bookingStatus, setBookingStatus] = React.useState<'CONFIRMED' | 'PENDING' | null>(null);
 
   const generatePin = () => {
     return Math.floor(100000 + Math.random() * 900000).toString();
@@ -319,6 +320,7 @@ export default function App() {
       setBookings(prev => [data as Booking, ...prev]);
       setBookingRef(ref);
       setBookingPin(pinCode);
+      setBookingStatus(data.status || newBooking.status);
       setSelectedRoute(null);
       setPage('CONFIRMATION');
       window.scrollTo(0, 0);
@@ -849,8 +851,17 @@ export default function App() {
               <div className="w-20 h-20 bg-success/20 rounded-full flex items-center justify-center mx-auto mb-8 border border-success/30">
                 <Check size={40} className="text-success" />
               </div>
-              <h1 className="text-5xl text-white italic mb-4">Your booking is confirmed.</h1>
-              <p className="ui-label text-muted mb-12 tracking-[0.2em]">PACK YOUR BAGS, PALAWAN AWAITS.</p>
+              {bookingStatus === 'PENDING' ? (
+                <>
+                  <h1 className="text-5xl text-white italic mb-4">Booking received!</h1>
+                  <p className="ui-label text-muted mb-12 tracking-[0.2em]">AWAITING OPERATOR CONFIRMATION — YOU'LL BE NOTIFIED SHORTLY.</p>
+                </>
+              ) : (
+                <>
+                  <h1 className="text-5xl text-white italic mb-4">Your booking is confirmed.</h1>
+                  <p className="ui-label text-muted mb-12 tracking-[0.2em]">PACK YOUR BAGS, PALAWAN AWAITS.</p>
+                </>
+              )}
 
               <motion.div
                 initial={{ boxShadow: '0 0 0px rgba(201, 148, 58, 0)' }}
