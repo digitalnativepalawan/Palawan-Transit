@@ -44,12 +44,11 @@ const MyBookingsModal = ({ onClose }: { onClose: () => void }) => {
     setLoading(true);
     setError('');
     setSearched(false);
-    const normalized = phone.trim().replace(/^\+63/, '0').replace(/^63/, '0');
-    const withCountry = '+63' + normalized.replace(/^0/, '');
+    const digits = phone.trim().replace(/\D/g, '');
     const { data, error: err } = await supabase
       .from('bookings')
       .select('*')
-      .or(`customer_phone.eq.${normalized},customer_phone.eq.${withCountry},customer_phone.eq.${phone.trim()}`)
+      .like('customer_phone', `%${digits}%`)
       .order('created_at', { ascending: false });
     if (err) {
       setError('Something went wrong. Please try again.');
