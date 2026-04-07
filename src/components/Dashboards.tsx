@@ -225,9 +225,19 @@ const OperatorProfileSettings = ({ operator, onUpdate }: { operator: any; onUpda
 const OperatorBookingsView = ({ bookings, routes, onUpdateStatus }: { bookings: Booking[]; routes: Route[]; onUpdateStatus: (id: string, status: BookingStatus) => void | Promise<void> }) => {
   const [updatingIds, setUpdatingIds] = React.useState<Set<string>>(new Set());
 
-  const pendingBookings = bookings.filter(b => b.status === 'PENDING').sort((a, b) => 
-    new Date(a.date).getTime() - new Date(b.date).getTime()
-  );
+  const statusOrder: Record<string, number> = { PENDING: 0, ACCEPTED: 1, CONFIRMED: 2, COMPLETED: 3, CANCELLED: 4 };
+  const statusColor = (status: string) => {
+    if (status === 'PENDING') return 'bg-gold/10 text-gold border border-gold/30';
+    if (status === 'ACCEPTED' || status === 'CONFIRMED') return 'bg-emerald-400/10 text-emerald-400 border border-emerald-400/30';
+    if (status === 'CANCELLED') return 'bg-red-400/10 text-red-400 border border-red-400/30';
+    return 'bg-muted/10 text-muted border border-muted/20';
+  };
+
+  const allBookings = bookings.sort((a, b) => {
+    const orderDiff = (statusOrder[(a as any).status] ?? 9) - (statusOrder[(b as any).status] ?? 9);
+    if (orderDiff !== 0) return orderDiff;
+    return new Date(a.date).getTime() - new Date(b.date).getTime();
+  });
 
   const handleUpdate = async (id: string, status: BookingStatus) => {
     setUpdatingIds(prev => new Set(prev).add(id));
@@ -235,31 +245,32 @@ const OperatorBookingsView = ({ bookings, routes, onUpdateStatus }: { bookings: 
     finally { setUpdatingIds(prev => { const next = new Set(prev); next.delete(id); return next; }); }
   };
 
-  if (pendingBookings.length === 0) {
+  if (allBookings.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center">
         <div className="w-16 h-16 bg-[#081221] border border-white/10 rounded-full flex items-center justify-center mb-4">
           <Check size={24} className="text-muted" />
         </div>
-        <p className="ui-label text-[10px] tracking-[0.2em] text-muted mb-2">ALL CAUGHT UP</p>
-        <p className="text-xs text-muted/60 max-w-xs">No pending bookings require your attention.</p>
+        <p className="ui-label text-[10px] tracking-[0.2em] text-muted mb-2">NO BOOKINGS YET</p>
+        <p className="text-xs text-muted/60 max-w-xs">When customers book your routes, they'll appear here.</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-3 pb-8">
-      {pendingBookings.map(booking => {
+      {allBookings.map(booking => {
         const isUpdating = updatingIds.has(booking.id);
+        const isPending = booking.status === 'PENDING';
         const route = routes.find(r => r.id === (booking as any).route_id || r.id === booking.routeId);
         return (
-          <div key={booking.id} className="bg-[#081221] border border-gold/20 rounded-xl p-4 shadow-[0_0_15px_-5px_rgba(212,175,55,0.15)]">
+          <div key={booking.id} className={`bg-[#081221] border rounded-xl p-4 ${isPending ? 'border-gold/20 shadow-[0_0_15px_-5px_rgba(212,175,55,0.15)]' : 'border-white/10'}`}>
             <div className="flex justify-between items-start mb-3">
               <div>
                 <h3 className="text-white font-semibold text-sm">{(booking as any).customer_name || booking.customerName || 'Guest'}</h3>
                 <p className="ui-label text-[9px] text-muted font-mono mt-0.5">REF: {(booking as any).reference_code || booking.id.slice(0, 8)}</p>
               </div>
-              <span className="ui-label text-[8px] px-2 py-1 rounded-full bg-gold/10 text-gold border border-gold/30 tracking-wider">PENDING</span>
+              <span className={`ui-label text-[8px] px-2 py-1 rounded-full tracking-wider ${statusColor((booking as any).status || 'PENDING')}`}>{(booking as any).status || 'PENDING'}</span>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-2 gap-x-4 mb-3 text-xs text-muted">
               <div className="flex items-center gap-2"><MapPin size={13} className="text-gold/60 shrink-0" /><span className="truncate">{route ? `${route.from} → ${route.to}` : 'Unknown Route'}</span></div>
@@ -267,14 +278,16 @@ const OperatorBookingsView = ({ bookings, routes, onUpdateStatus }: { bookings: 
               <div className="flex items-center gap-2"><UsersIcon size={13} className="text-gold/60 shrink-0" /><span>{booking.seats} Seat{booking.seats > 1 ? 's' : ''}</span></div>
               <div className="flex items-center gap-2"><CreditCardIcon size={13} className="text-gold/60 shrink-0" /><span>₱{(booking as any).total_price || booking.totalPrice} • <span className="text-emerald-400">Paid</span></span></div>
             </div>
-            <div className="grid grid-cols-2 gap-3 pt-3 border-t border-white/5">
-              <button onClick={() => handleUpdate(booking.id, 'CANCELLED')} disabled={isUpdating} className="flex items-center justify-center gap-2 py-2.5 rounded-lg border border-red-400/20 text-red-400 ui-label text-[9px] hover:bg-red-400/10 active:scale-[0.98] transition-all disabled:opacity-50">
-                {isUpdating ? <Loader2 size={13} className="animate-spin" /> : <X size={14} />} REJECT
-              </button>
-              <button onClick={() => handleUpdate(booking.id, 'ACCEPTED')} disabled={isUpdating} className="flex items-center justify-center gap-2 py-2.5 rounded-lg bg-gold text-ink ui-label text-[9px] font-bold hover:bg-[#D4AF37] active:scale-[0.98] transition-all disabled:opacity-50">
-                {isUpdating ? <Loader2 size={13} className="animate-spin" /> : <Check size={14} />} CONFIRM
-              </button>
-            </div>
+            {isPending && (
+              <div className="grid grid-cols-2 gap-3 pt-3 border-t border-white/5">
+                <button onClick={() => handleUpdate(booking.id, 'CANCELLED')} disabled={isUpdating} className="flex items-center justify-center gap-2 py-2.5 rounded-lg border border-red-400/20 text-red-400 ui-label text-[9px] hover:bg-red-400/10 active:scale-[0.98] transition-all disabled:opacity-50">
+                  {isUpdating ? <Loader2 size={13} className="animate-spin" /> : <X size={14} />} REJECT
+                </button>
+                <button onClick={() => handleUpdate(booking.id, 'ACCEPTED')} disabled={isUpdating} className="flex items-center justify-center gap-2 py-2.5 rounded-lg bg-gold text-ink ui-label text-[9px] font-bold hover:bg-[#D4AF37] active:scale-[0.98] transition-all disabled:opacity-50">
+                  {isUpdating ? <Loader2 size={13} className="animate-spin" /> : <Check size={14} />} CONFIRM
+                </button>
+              </div>
+            )}
           </div>
         );
       })}
