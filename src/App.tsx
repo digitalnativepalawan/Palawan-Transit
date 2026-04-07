@@ -11,10 +11,11 @@ import { SearchWidget, BookingModal } from './components/Booking';
 import { AdminDashboard } from './components/Dashboards';
 import { RouteDetailsView } from './components/RouteDetails';
 import { OperatorProfileView } from './components/OperatorProfile';
+import { OperatorOnboarding } from './components/OperatorOnboarding';
 import { supabase } from './lib/supabase';
 import { Route, Operator, Booking, BookingStatus, TransportMode } from './types';
 
-type Page = 'LANDING' | 'RESULTS' | 'CONFIRMATION' | 'ADMIN' | 'DETAILS' | 'OPERATOR_PROFILE' | 'OPERATOR_PORTAL';
+type Page = 'LANDING' | 'RESULTS' | 'CONFIRMATION' | 'ADMIN' | 'DETAILS' | 'OPERATOR_PROFILE' | 'OPERATOR_PORTAL' | 'OPERATOR_REGISTER';
 
 export default function App() {
   const [page, setPage] = React.useState<Page>('LANDING');
@@ -124,8 +125,18 @@ export default function App() {
       setPasskey('');
       setPasskeyError(false);
     } else {
-      setPasskeyError(true);
-      setTimeout(() => setPasskeyError(false), 500);
+      const operator = operators.find(o => o.id === normalizedPasskey.toLowerCase());
+      if (operator) {
+        setUserRole('OPERATOR');
+        setCurrentOperatorId(operator.id);
+        setPage('OPERATOR_PORTAL');
+        setShowPasskeyModal(false);
+        setPasskey('');
+        setPasskeyError(false);
+      } else {
+        setPasskeyError(true);
+        setTimeout(() => setPasskeyError(false), 500);
+      }
     }
   };
 
@@ -373,14 +384,9 @@ export default function App() {
   
   const filteredRoutes = routes.filter(r => {
     if (!searchParams) return true;
-    
-    if (isIslandSearch) {
-      return r.mode === 'ISLAND_HOPPING';
-    }
-    
+    if (isIslandSearch) return r.mode === 'ISLAND_HOPPING';
     const matchesSearch = r.from === searchParams.from && r.to === searchParams.to;
     if (!matchesSearch) return false;
-
     if (activeFilter === 'ALL') return true;
     if (activeFilter === 'SHARED') return r.mode === 'SHUTTLE_SHARED';
     if (activeFilter === 'PRIVATE') return r.mode === 'SHUTTLE_PRIVATE';
@@ -481,6 +487,12 @@ export default function App() {
                   <p className="ui-label text-muted tracking-[0.2em]">
                     Shuttles. Bangkas. All in one booking.
                   </p>
+                  <button
+                    onClick={() => setPage('OPERATOR_REGISTER')}
+                    className="mt-4 ui-label text-[10px] text-gold/60 hover:text-gold tracking-[0.2em] transition-colors"
+                  >
+                    REGISTER AS OPERATOR →
+                  </button>
                 </motion.div>
                 <SearchWidget onSearch={handleSearch} />
               </div>
@@ -531,6 +543,14 @@ export default function App() {
               </div>
             </section>
           </motion.main>
+        )}
+
+        {page === 'OPERATOR_REGISTER' && (
+          <OperatorOnboarding onComplete={() => {
+            setShowPasskeyModal(true);
+            setModalTitle('Operator Portal Access');
+            setPage('LANDING');
+          }} />
         )}
 
         {page === 'OPERATOR_PORTAL' && (
@@ -609,7 +629,6 @@ export default function App() {
                 <p className="ui-label text-muted mt-4 tracking-[0.2em]">{filteredRoutes.length} {searchParams?.to.includes('Tour') ? 'TOURS' : 'ROUTES'} FOUND · {searchParams?.date || 'TODAY'}</p>
               </div>
               
-              {/* Only show filter buttons for transport, not island hopping */}
               {!isIslandSearch && (
                 <div className="flex flex-wrap gap-4 w-full md:w-auto">
                   {[
