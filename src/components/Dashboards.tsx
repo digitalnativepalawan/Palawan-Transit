@@ -1,193 +1,23 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
-  LayoutDashboard, BookOpen, Map, Settings as SettingsIcon, Users, 
-  CreditCard, BarChart3, UserCircle, Plus, ExternalLink, Trash2, 
-  FileText, Shield, Clock, Check, X, Menu
+  LayoutDashboard, BookOpen, Map, Users, CreditCard, BarChart3, 
+  UserCircle, Settings as SettingsIcon, Check, X, Plus, 
+  MapPin, Calendar, Users as UsersIcon, CreditCard as CreditCardIcon, 
+  Loader2, Menu, Trash2, Edit2, ArrowUpRight, ArrowDownRight
 } from 'lucide-react';
-import { Route, BookingStatus, Operator } from '../types';
+import { Route, Operator, Booking, BookingStatus } from '../types';
 import { supabase } from '../lib/supabase';
-import { OperatorBookingsList } from './OperatorBookingsList';
 
-// ============================================
-// SUB-COMPONENTS (Preserved from your codebase)
-// ============================================
-
-const DashboardView = ({ bookings, routes, onUpdateStatus, isOperatorPortal }: any) => (
-  <div className="space-y-6">
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-      <div className="bg-[#081221] border border-white/10 p-6">
-        <p className="ui-label text-[9px] text-muted tracking-[0.2em]">TOTAL BOOKINGS</p>
-        <p className="text-2xl text-white font-display mt-1">{bookings?.length || 0}</p>
-      </div>
-      <div className="bg-[#081221] border border-white/10 p-6">
-        <p className="ui-label text-[9px] text-muted tracking-[0.2em]">ACTIVE ROUTES</p>
-        <p className="text-2xl text-gold font-display mt-1">{routes?.length || 0}</p>
-      </div>
-      <div className="bg-[#081221] border border-white/10 p-6">
-        <p className="ui-label text-[9px] text-muted tracking-[0.2em]">PENDING ACTIONS</p>
-        <p className="text-2xl text-white font-display mt-1">{bookings?.filter((b: any) => b.status === 'PENDING').length || 0}</p>
-      </div>
-    </div>
-  </div>
-);
-
-const BookingsView = ({ bookings, onManualBooking, onUpdateStatus }: any) => (
-  <div className="space-y-6">
-    <div className="flex justify-between items-center">
-      <h2 className="text-2xl text-white font-display italic">Booking Management</h2>
-      <button onClick={onManualBooking} className="bg-gold text-ink px-6 py-3 ui-label text-[10px] font-bold tracking-[0.2em] flex items-center gap-2 hover:bg-[#D4AF37] transition-colors">
-        <Plus size={14} /> MANUAL BOOKING
-      </button>
-    </div>
-    <div className="bg-[#081221] border border-white/10 overflow-hidden rounded-xl">
-      <div className="overflow-x-auto">
-        <table className="w-full text-left">
-          <thead className="bg-[#050B14] border-b border-white/10">
-            <tr>
-              {['PASSENGER', 'ROUTE', 'DATE', 'STATUS', 'ACTIONS'].map(h => (
-                <th key={h} className="ui-label text-[9px] text-muted tracking-[0.2em] p-4">{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-white/5">
-            {bookings?.map((b: any) => (
-              <tr key={b.id} className="hover:bg-white/5 transition-colors">
-                <td className="p-4 ui-label text-[10px] text-white">{b.customerName || 'Guest'}</td>
-                <td className="p-4 ui-label text-[10px] text-muted">{b.routeId}</td>
-                <td className="p-4 ui-label text-[10px] text-muted">{new Date(b.date).toLocaleDateString()}</td>
-                <td className="p-4"><span className={`ui-label text-[9px] px-2 py-1 rounded-full ${b.status === 'PENDING' ? 'bg-gold/10 text-gold' : 'bg-emerald-400/10 text-emerald-400'}`}>{b.status}</span></td>
-                <td className="p-4">
-                  <div className="flex gap-2">
-                    {b.status === 'PENDING' && <>
-                      <button onClick={() => onUpdateStatus(b.id, 'ACCEPTED')} className="text-gold hover:text-white ui-label text-[9px]">ACCEPT</button>
-                      <button onClick={() => onUpdateStatus(b.id, 'CANCELLED')} className="text-red-400 hover:text-white ui-label text-[9px]">REJECT</button>
-                    </>}
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-);
-
-const RoutesView = ({ routes, onAdd, onEdit, onDelete }: any) => (
-  <div className="space-y-6">
-    <div className="flex justify-between items-center">
-      <h2 className="text-2xl text-white font-display italic">Route Management</h2>
-      <button onClick={onAdd} className="bg-gold text-ink px-6 py-3 ui-label text-[10px] font-bold tracking-[0.2em] flex items-center gap-2"><Plus size={14} /> CREATE ROUTE</button>
-    </div>
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      {routes?.map((r: Route) => (
-        <div key={r.id} className="bg-[#081221] border border-white/10 p-6 rounded-xl hover:border-gold/30 transition-all">
-          <div className="flex justify-between items-start mb-3">
-            <div>
-              <h3 className="text-white font-semibold text-sm">{r.from} → {r.to}</h3>
-              <p className="ui-label text-[8px] text-muted mt-1">{r.mode} • ₱{r.price}</p>
-            </div>
-            <div className="flex gap-2">
-              <button onClick={() => onEdit(r)} className="text-muted hover:text-gold ui-label text-[8px]">EDIT</button>
-              <button onClick={() => onDelete(r.id)} className="text-muted hover:text-red-400 ui-label text-[8px]">DEL</button>
-            </div>
-          </div>
-          <p className="ui-label text-[9px] text-gold/80">Departs: {r.departureTime} • Seats: {r.seatsLeft}</p>
-        </div>
-      ))}
-    </div>
-  </div>
-);
-
-const OperatorsView = ({ operators, onAdd, onEdit, onDelete }: any) => (
-  <div className="space-y-6">
-    <h2 className="text-2xl text-white font-display italic">Operator Directory</h2>
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {operators?.map((op: any) => (
-        <div key={op.id} className="bg-[#081221] border border-white/10 p-6 rounded-xl">
-          <h3 className="text-white font-semibold text-sm">{op.name}</h3>
-          <p className="ui-label text-[9px] text-muted mt-1">{op.phone} • {op.location || 'Palawan'}</p>
-          <div className="flex gap-2 mt-3">
-            <button onClick={() => onEdit(op)} className="ui-label text-[8px] text-gold hover:text-white">EDIT</button>
-            <button onClick={() => onDelete(op.id)} className="ui-label text-[8px] text-red-400 hover:text-white">DELETE</button>
-          </div>
-        </div>
-      ))}
-    </div>
-  </div>
-);
-
-const OperatorProfileSettings = ({ operator, onUpdate }: any) => {
-  const [formData, setFormData] = React.useState({
-    name: operator?.name || '', phone: operator?.phone || '', whatsapp: operator?.whatsapp || '',
-    email: operator?.email || '', description: operator?.description || '', location: operator?.location || ''
-  });
-  const [vehiclePhotos, setVehiclePhotos] = React.useState<string[]>(operator?.vehicle_photos || []);
-  const [permits, setPermits] = React.useState<any[]>(operator?.permits || []);
-  const [isSaving, setIsSaving] = React.useState(false);
-
-  const handleSave = async () => {
-    setIsSaving(true);
-    try {
-      await supabase.from('operators').update(formData).eq('id', operator.id);
-      onUpdate({ ...operator, ...formData });
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  return (
-    <div className="space-y-8 max-w-3xl mx-auto">
-      <div className="bg-[#081221] border border-white/10 p-6 lg:p-8 rounded-xl space-y-6">
-        <h3 className="ui-label text-[10px] text-gold tracking-[0.2em]">OPERATOR PROFILE</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {['name', 'phone', 'whatsapp', 'email'].map(field => (
-            <div key={field} className="space-y-1">
-              <label className="ui-label text-[8px] text-muted uppercase">{field}</label>
-              <input 
-                value={(formData as any)[field]} 
-                onChange={e => setFormData({ ...formData, [field]: e.target.value })} 
-                className="w-full bg-[#050B14] border border-white/10 p-3 ui-label text-[10px] text-white outline-none focus:border-gold"
-              />
-            </div>
-          ))}
-        </div>
-        <div className="space-y-1">
-          <label className="ui-label text-[8px] text-muted uppercase">DESCRIPTION</label>
-          <textarea 
-            value={formData.description} 
-            onChange={e => setFormData({ ...formData, description: e.target.value })} 
-            className="w-full bg-[#050B14] border border-white/10 p-3 ui-label text-[10px] text-white outline-none focus:border-gold resize-none h-24"
-          />
-        </div>
-        <button 
-          onClick={handleSave} 
-          disabled={isSaving}
-          className="w-full bg-gold text-ink py-3 ui-label text-[10px] font-bold tracking-[0.2em] hover:bg-[#D4AF37] disabled:opacity-50"
-        >
-          {isSaving ? 'SAVING...' : 'SAVE PROFILE'}
-        </button>
-      </div>
-    </div>
-  );
-};
-
-const SettingsView = () => <div className="text-muted text-center py-20">System Settings Placeholder</div>;
-const PaymentsView = () => <div className="text-muted text-center py-20">Payments Dashboard Placeholder</div>;
-const ReportsView = () => <div className="text-muted text-center py-20">Reports & Analytics Placeholder</div>;
-const PassengersView = () => <div className="text-muted text-center py-20">Passenger Directory Placeholder</div>;
-
-// ============================================
-// MAIN DASHBOARD COMPONENT
-// ============================================
-
-interface DashboardsProps {
-  bookings: any[];
+interface AdminDashboardProps {
   routes: Route[];
-  operators: any[];
+  operators: Operator[];
+  bookings: Booking[];
   onUpdateBookingStatus: (id: string, status: BookingStatus) => void | Promise<void>;
   onAddRoute: (route: any) => void;
   onEditRoute: (route: any) => void;
@@ -200,17 +30,145 @@ interface DashboardsProps {
   operatorId?: string;
 }
 
-export const Dashboards: React.FC<DashboardsProps> = ({
-  bookings, routes, operators, onUpdateBookingStatus,
+type AdminTab = 'DASHBOARD' | 'BOOKINGS' | 'ROUTES' | 'OPERATORS' | 'PAYMENTS' | 'REPORTS' | 'PASSENGERS' | 'SETTINGS';
+
+// ============================================
+// OPERATOR BOOKINGS LIST (UX Improved)
+// ============================================
+const OperatorBookingsView = ({ bookings, routes, onUpdateStatus }: { bookings: Booking[]; routes: Route[]; onUpdateStatus: (id: string, status: BookingStatus) => void | Promise<void> }) => {
+  const [updatingIds, setUpdatingIds] = React.useState<Set<string>>(new Set());
+
+  const pendingBookings = bookings.filter(b => b.status === 'PENDING').sort((a, b) => 
+    new Date(a.date).getTime() - new Date(b.date).getTime()
+  );
+
+  const handleUpdate = async (id: string, status: BookingStatus) => {
+    setUpdatingIds(prev => new Set(prev).add(id));
+    try { await onUpdateStatus(id, status); }
+    finally { setUpdatingIds(prev => { const next = new Set(prev); next.delete(id); return next; }); }
+  };
+
+  if (pendingBookings.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-center">
+        <div className="w-16 h-16 bg-[#081221] border border-white/10 rounded-full flex items-center justify-center mb-4">
+          <Check size={24} className="text-muted" />
+        </div>
+        <p className="ui-label text-[10px] tracking-[0.2em] text-muted mb-2">ALL CAUGHT UP</p>
+        <p className="text-xs text-muted/60 max-w-xs">No pending bookings require your attention.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3 pb-8">
+      {pendingBookings.map(booking => {
+        const isUpdating = updatingIds.has(booking.id);
+        const route = routes.find(r => r.id === booking.routeId);
+        return (
+          <div key={booking.id} className="bg-[#081221] border border-gold/20 rounded-xl p-4 shadow-[0_0_15px_-5px_rgba(212,175,55,0.15)]">
+            <div className="flex justify-between items-start mb-3">
+              <div>
+                <h3 className="text-white font-semibold text-sm">{booking.customerName || 'Guest'}</h3>
+                <p className="ui-label text-[9px] text-muted font-mono mt-0.5">REF: {booking.referenceCode || booking.id.slice(0, 8)}</p>
+              </div>
+              <span className="ui-label text-[8px] px-2 py-1 rounded-full bg-gold/10 text-gold border border-gold/30 tracking-wider">PENDING</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-2 gap-x-4 mb-3 text-xs text-muted">
+              <div className="flex items-center gap-2"><MapPin size={13} className="text-gold/60 shrink-0" /><span className="truncate">{route ? `${route.from} → ${route.to}` : 'Unknown Route'}</span></div>
+              <div className="flex items-center gap-2"><Calendar size={13} className="text-gold/60 shrink-0" /><span>{new Date(booking.date).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })} • {route?.departureTime || '--'}</span></div>
+              <div className="flex items-center gap-2"><UsersIcon size={13} className="text-gold/60 shrink-0" /><span>{booking.seats} Seat{booking.seats > 1 ? 's' : ''}</span></div>
+              <div className="flex items-center gap-2"><CreditCardIcon size={13} className="text-gold/60 shrink-0" /><span>₱{booking.totalPrice} • <span className="text-emerald-400">Paid</span></span></div>
+            </div>
+            <div className="grid grid-cols-2 gap-3 pt-3 border-t border-white/5">
+              <button onClick={() => handleUpdate(booking.id, 'CANCELLED')} disabled={isUpdating} className="flex items-center justify-center gap-2 py-2.5 rounded-lg border border-red-400/20 text-red-400 ui-label text-[9px] hover:bg-red-400/10 active:scale-[0.98] transition-all disabled:opacity-50">
+                {isUpdating ? <Loader2 size={13} className="animate-spin" /> : <X size={14} />} REJECT
+              </button>
+              <button onClick={() => handleUpdate(booking.id, 'ACCEPTED')} disabled={isUpdating} className="flex items-center justify-center gap-2 py-2.5 rounded-lg bg-gold text-ink ui-label text-[9px] font-bold hover:bg-[#D4AF37] active:scale-[0.98] transition-all disabled:opacity-50">
+                {isUpdating ? <Loader2 size={13} className="animate-spin" /> : <Check size={14} />} CONFIRM
+              </button>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
+// ============================================
+// ADMIN BOOKINGS TABLE
+// ============================================
+const AdminBookingsView = ({ bookings, onUpdateStatus }: { bookings: Booking[]; onUpdateStatus: (id: string, status: BookingStatus) => void | Promise<void> }) => (
+  <div className="bg-[#081221] border border-white/10 overflow-hidden rounded-xl">
+    <div className="overflow-x-auto">
+      <table className="w-full text-left">
+        <thead className="bg-[#050B14] border-b border-white/10">
+          <tr>
+            {['PASSENGER', 'ROUTE ID', 'DATE', 'STATUS', 'ACTIONS'].map(h => (
+              <th key={h} className="ui-label text-[9px] text-muted tracking-[0.2em] p-4">{h}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-white/5">
+          {bookings.map(b => (
+            <tr key={b.id} className="hover:bg-white/5 transition-colors">
+              <td className="p-4 ui-label text-[10px] text-white">{b.customerName || 'Guest'}</td>
+              <td className="p-4 ui-label text-[10px] text-muted font-mono">{b.routeId}</td>
+              <td className="p-4 ui-label text-[10px] text-muted">{new Date(b.date).toLocaleDateString()}</td>
+              <td className="p-4"><span className={`ui-label text-[9px] px-2 py-1 rounded-full ${b.status === 'PENDING' ? 'bg-gold/10 text-gold' : b.status === 'ACCEPTED' || b.status === 'CONFIRMED' ? 'bg-emerald-400/10 text-emerald-400' : 'bg-red-400/10 text-red-400'}`}>{b.status}</span></td>
+              <td className="p-4">
+                {b.status === 'PENDING' && (
+                  <div className="flex gap-3">
+                    <button onClick={() => onUpdateStatus(b.id, 'ACCEPTED')} className="text-gold hover:text-white ui-label text-[9px]">ACCEPT</button>
+                    <button onClick={() => onUpdateStatus(b.id, 'CANCELLED')} className="text-red-400 hover:text-white ui-label text-[9px]">REJECT</button>
+                  </div>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </div>
+);
+
+// ============================================
+// DASHBOARD SUMMARY
+// ============================================
+const DashboardSummary = ({ bookings, routes }: { bookings: Booking[]; routes: Route[] }) => (
+  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+    <div className="bg-[#081221] border border-white/10 p-5">
+      <p className="ui-label text-[9px] text-muted tracking-[0.2em]">TOTAL BOOKINGS</p>
+      <p className="text-2xl text-white font-display mt-1">{bookings.length}</p>
+    </div>
+    <div className="bg-[#081221] border border-white/10 p-5">
+      <p className="ui-label text-[9px] text-muted tracking-[0.2em]">ACTIVE ROUTES</p>
+      <p className="text-2xl text-gold font-display mt-1">{routes.length}</p>
+    </div>
+    <div className="bg-[#081221] border border-white/10 p-5">
+      <p className="ui-label text-[9px] text-muted tracking-[0.2em]">PENDING ACTIONS</p>
+      <p className="text-2xl text-white font-display mt-1">{bookings.filter(b => b.status === 'PENDING').length}</p>
+    </div>
+  </div>
+);
+
+// ============================================
+// MAIN COMPONENT
+// ============================================
+
+export const AdminDashboard: React.FC<AdminDashboardProps> = ({ 
+  routes, operators, bookings, onUpdateBookingStatus,
   onAddRoute, onEditRoute, onDeleteRoute, onAddOperator, onEditOperator, onDeleteOperator,
   onBack, isOperatorPortal = false, operatorId
 }) => {
-  const [activeTab, setActiveTab] = React.useState('DASHBOARD');
+  const [activeTab, setActiveTab] = React.useState<AdminTab>('DASHBOARD');
+  const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
   const [showRouteModal, setShowRouteModal] = React.useState(false);
   const [showOperatorModal, setShowOperatorModal] = React.useState(false);
-  const [showBookingModal, setShowBookingModal] = React.useState(false);
   const [editingItem, setEditingItem] = React.useState<any>(null);
-  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
+
+  const filteredBookings = isOperatorPortal ? bookings.filter(b => b.operatorId === operatorId) : bookings;
+  const filteredRoutes = isOperatorPortal ? routes.filter(r => r.operatorId === operatorId) : routes;
 
   const sidebarItems = isOperatorPortal ? [
     { id: 'DASHBOARD', label: 'My Dashboard', icon: LayoutDashboard },
@@ -223,50 +181,75 @@ export const Dashboards: React.FC<DashboardsProps> = ({
     { id: 'ROUTES', label: 'Routes', icon: Map },
     { id: 'OPERATORS', label: 'Operators', icon: Users },
     { id: 'PAYMENTS', label: 'Payments', icon: CreditCard },
-    { id: 'REPORTS', label: 'Reports', icon: BarChart3 },
-    { id: 'PASSENGERS', label: 'Passengers', icon: UserCircle },
     { id: 'SETTINGS', label: 'Settings', icon: SettingsIcon },
   ];
-
-  const filteredBookings = isOperatorPortal 
-    ? bookings.filter(b => b.operatorId === operatorId)
-    : bookings;
-
-  const filteredRoutes = isOperatorPortal
-    ? routes.filter(r => r.operatorId === operatorId)
-    : routes;
 
   const renderContent = () => {
     switch (activeTab) {
       case 'DASHBOARD':
-        return <DashboardView bookings={filteredBookings} routes={filteredRoutes} onUpdateStatus={onUpdateBookingStatus} isOperatorPortal={isOperatorPortal} />;
-      
+        return <DashboardSummary bookings={filteredBookings} routes={filteredRoutes} />;
       case 'BOOKINGS':
         return isOperatorPortal ? (
-          <OperatorBookingsList 
-            bookings={filteredBookings} 
-            routes={filteredRoutes} 
-            onUpdateStatus={onUpdateBookingStatus}
-          />
+          <OperatorBookingsView bookings={filteredBookings} routes={filteredRoutes} onUpdateStatus={onUpdateBookingStatus} />
         ) : (
-          <BookingsView 
-            bookings={filteredBookings} 
-            onManualBooking={() => setShowBookingModal(true)} 
-            onUpdateStatus={onUpdateBookingStatus} 
-          />
+          <AdminBookingsView bookings={filteredBookings} onUpdateStatus={onUpdateBookingStatus} />
         );
-      
       case 'ROUTES':
-        return <RoutesView routes={filteredRoutes} onAdd={() => { setEditingItem(null); setShowRouteModal(true); }} onEdit={(r: any) => { setEditingItem(r); setShowRouteModal(true); }} onDelete={onDeleteRoute} />;
-      
+        return (
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl text-white font-display italic">Route Management</h2>
+              <button onClick={() => { setEditingItem(null); setShowRouteModal(true); }} className="bg-gold text-ink px-5 py-2.5 ui-label text-[9px] font-bold tracking-[0.2em] flex items-center gap-2 hover:bg-[#D4AF37] transition-colors">
+                <Plus size={14} /> ADD ROUTE
+              </button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {filteredRoutes.map(r => (
+                <div key={r.id} className="bg-[#081221] border border-white/10 p-5 rounded-xl hover:border-gold/30 transition-all">
+                  <div className="flex justify-between items-start mb-2">
+                    <h3 className="text-white font-semibold text-sm">{r.from} → {r.to}</h3>
+                    <div className="flex gap-2">
+                      <button onClick={() => { setEditingItem(r); setShowRouteModal(true); }} className="text-muted hover:text-gold p-1"><Edit2 size={13} /></button>
+                      <button onClick={() => onDeleteRoute(r.id)} className="text-muted hover:text-red-400 p-1"><Trash2 size={13} /></button>
+                    </div>
+                  </div>
+                  <p className="ui-label text-[8px] text-muted mt-1">{r.mode} • ₱{r.price} • Seats: {r.seatsLeft}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
       case 'OPERATORS':
-        return <OperatorsView operators={operators} onAdd={() => { setEditingItem(null); setShowOperatorModal(true); }} onEdit={(op: any) => { setEditingItem(op); setShowOperatorModal(true); }} onDelete={onDeleteOperator} />;
-      
-      case 'PAYMENTS': return <PaymentsView />;
-      case 'REPORTS': return <ReportsView />;
-      case 'PASSENGERS': return <PassengersView />;
-      case 'SETTINGS': return isOperatorPortal ? <OperatorProfileSettings operator={operators.find(o => o.id === operatorId)} onUpdate={onEditOperator} /> : <SettingsView />;
-      default: return null;
+        return (
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl text-white font-display italic">Operator Directory</h2>
+              <button onClick={() => { setEditingItem(null); setShowOperatorModal(true); }} className="bg-gold text-ink px-5 py-2.5 ui-label text-[9px] font-bold tracking-[0.2em] flex items-center gap-2"><Plus size={14} /> ADD OPERATOR</button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {operators.map(op => (
+                <div key={op.id} className="bg-[#081221] border border-white/10 p-5 rounded-xl">
+                  <h3 className="text-white font-semibold text-sm">{op.name}</h3>
+                  <p className="ui-label text-[9px] text-muted mt-1">{op.phone} • {op.type}</p>
+                  <div className="flex gap-2 mt-3">
+                    <button onClick={() => { setEditingItem(op); setShowOperatorModal(true); }} className="ui-label text-[8px] text-gold hover:text-white">EDIT</button>
+                    <button onClick={() => onDeleteOperator(op.id)} className="ui-label text-[8px] text-red-400 hover:text-white">DELETE</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      case 'SETTINGS':
+        return (
+          <div className="bg-[#081221] border border-white/10 p-8 max-w-2xl rounded-xl text-center">
+            <SettingsIcon size={40} className="mx-auto text-muted mb-4" />
+            <h3 className="text-white font-semibold text-lg mb-2">System Settings</h3>
+            <p className="text-muted text-sm">Manage your portal preferences, notification rules, and integrations. Coming soon in the next deploy.</p>
+          </div>
+        );
+      default:
+        return <div className="text-muted text-center py-20">Module under construction.</div>;
     }
   };
 
@@ -276,25 +259,23 @@ export const Dashboards: React.FC<DashboardsProps> = ({
       <header className="lg:hidden h-16 border-b border-white/10 flex items-center justify-between px-4 bg-[#081221] z-50">
         <div className="flex items-baseline">
           <span className="font-display text-sm tracking-[0.2em] text-white uppercase">PALAWAN</span>
-          <span className="font-ui text-[8px] text-gold tracking-[0.1em] ml-1">{isOperatorPortal ? '.OPERATOR' : '.ADMIN'}</span>
+          <span className="font-ui text-[8px] text-gold tracking-[0.1em] ml-1">{isOperatorPortal ? '.OP' : '.ADMIN'}</span>
         </div>
-        <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="text-white p-2">
-          <Menu size={20} />
-        </button>
+        <button onClick={() => setIsSidebarOpen(true)} className="text-white p-2"><Menu size={20} /></button>
       </header>
 
       {/* Sidebar */}
-      <aside className={`fixed lg:relative inset-y-0 left-0 w-64 bg-[#081221] border-r border-white/10 z-40 transform transition-transform duration-300 ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+      <aside className={`fixed lg:relative inset-y-0 left-0 w-64 bg-[#081221] border-r border-white/10 z-40 transform transition-transform duration-300 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
         <div className="p-6 border-b border-white/10 flex items-baseline mb-4">
           <span className="font-display text-base tracking-[0.2em] text-white uppercase">PALAWAN</span>
-          <span className="font-ui text-[10px] text-gold tracking-[0.1em] ml-1">{isOperatorPortal ? '.OPERATOR' : '.ADMIN'}</span>
-          <button onClick={() => setMobileMenuOpen(false)} className="lg:hidden absolute top-5 right-4 text-muted"><X size={18} /></button>
+          <span className="font-ui text-[10px] text-gold tracking-[0.1em] ml-1">{isOperatorPortal ? '.OP' : '.ADMIN'}</span>
+          <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden absolute top-5 right-4 text-muted"><X size={18} /></button>
         </div>
         <nav className="px-3 space-y-1">
           {sidebarItems.map(item => (
             <button
               key={item.id}
-              onClick={() => { setActiveTab(item.id); setMobileMenuOpen(false); }}
+              onClick={() => { setActiveTab(item.id as AdminTab); setIsSidebarOpen(false); }}
               className={`w-full flex items-center gap-3 px-4 py-3 ui-label text-[10px] tracking-[0.15em] rounded-lg transition-all ${
                 activeTab === item.id ? 'bg-gold/10 text-gold border border-gold/20' : 'text-muted hover:text-white hover:bg-white/5'
               }`}
@@ -313,12 +294,7 @@ export const Dashboards: React.FC<DashboardsProps> = ({
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto p-4 lg:p-8 pt-20 lg:pt-6">
         <div className="max-w-5xl mx-auto">
-          <motion.div
-            key={activeTab}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-          >
+          <motion.div key={activeTab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
             {renderContent()}
           </motion.div>
         </div>
@@ -326,27 +302,11 @@ export const Dashboards: React.FC<DashboardsProps> = ({
 
       {/* Modals */}
       <AnimatePresence>
-        {showBookingModal && (
-          <ManualBookingModal 
-            routes={routes} 
-            onClose={() => setShowBookingModal(false)} 
-            onSave={(data) => { onAddRoute(data); setShowBookingModal(false); }} 
-          />
-        )}
         {showRouteModal && (
-          <RouteModal 
-            route={editingItem} 
-            operators={operators} 
-            onClose={() => setShowRouteModal(false)} 
-            onSave={editingItem ? onEditRoute : onAddRoute} 
-          />
+          <RouteModal route={editingItem} operators={operators} onClose={() => setShowRouteModal(false)} onSave={editingItem ? onEditRoute : onAddRoute} />
         )}
         {showOperatorModal && (
-          <OperatorModal 
-            operator={editingItem} 
-            onClose={() => setShowOperatorModal(false)} 
-            onSave={editingItem ? onEditOperator : onAddOperator} 
-          />
+          <OperatorModal operator={editingItem} onClose={() => setShowOperatorModal(false)} onSave={editingItem ? onEditOperator : onAddOperator} />
         )}
       </AnimatePresence>
     </div>
@@ -354,53 +314,22 @@ export const Dashboards: React.FC<DashboardsProps> = ({
 };
 
 // ============================================
-// MODAL COMPONENTS
+// SUB-COMPONENTS (Modals)
 // ============================================
-
-const ManualBookingModal = ({ routes, onClose, onSave }: any) => {
-  const [formData, setFormData] = React.useState({ 
-    customerName: '', customerPhone: '', routeId: routes[0]?.id || '', 
-    date: new Date().toISOString().split('T')[0], seats: 1, status: 'CONFIRMED' 
-  });
-  return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-center justify-center px-4">
-      <div className="absolute inset-0 bg-ink/90 backdrop-blur-sm" onClick={onClose} />
-      <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="bg-[#081221] border border-white/10 p-6 md:p-8 max-w-lg w-full relative z-10 rounded-xl">
-        <h2 className="text-xl text-white font-display italic mb-6">Manual Booking</h2>
-        <div className="space-y-4 mb-6">
-          <input placeholder="Passenger Name" value={formData.customerName} onChange={e => setFormData({...formData, customerName: e.target.value})} className="w-full bg-[#050B14] border border-white/10 p-3 ui-label text-[10px] text-white outline-none focus:border-gold rounded" />
-          <input placeholder="Contact Phone" value={formData.customerPhone} onChange={e => setFormData({...formData, customerPhone: e.target.value})} className="w-full bg-[#050B14] border border-white/10 p-3 ui-label text-[10px] text-white outline-none focus:border-gold rounded" />
-          <select value={formData.routeId} onChange={e => setFormData({...formData, routeId: e.target.value})} className="w-full bg-[#050B14] border border-white/10 p-3 ui-label text-[10px] text-white outline-none focus:border-gold rounded">
-            {routes?.map((r: any) => <option key={r.id} value={r.id}>{r.from} → {r.to}</option>)}
-          </select>
-          <input type="date" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} className="w-full bg-[#050B14] border border-white/10 p-3 ui-label text-[10px] text-white outline-none focus:border-gold rounded" />
-        </div>
-        <div className="flex gap-3">
-          <button onClick={onClose} className="flex-1 py-3 border border-white/10 text-muted ui-label text-[10px] hover:text-white">CANCEL</button>
-          <button onClick={() => onSave(formData)} className="flex-1 py-3 bg-gold text-ink ui-label text-[10px] font-bold tracking-[0.2em]">CREATE</button>
-        </div>
-      </motion.div>
-    </motion.div>
-  );
-};
 
 const RouteModal = ({ route, operators, onClose, onSave }: any) => {
   const [formData, setFormData] = React.useState(route || { from: '', to: '', mode: 'SHUTTLE_SHARED', price: 0, departureTime: '', seatsLeft: 12 });
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-center justify-center px-4">
-      <div className="absolute inset-0 bg-ink/90 backdrop-blur-sm" onClick={onClose} />
-      <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="bg-[#081221] border border-white/10 p-6 md:p-8 max-w-lg w-full relative z-10 rounded-xl">
+      <div className="absolute inset-0 bg-[#050B14]/90 backdrop-blur-sm" onClick={onClose} />
+      <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="bg-[#081221] border border-white/10 p-6 max-w-lg w-full relative z-10 rounded-xl">
         <h2 className="text-xl text-white font-display italic mb-6">{route ? 'Edit Route' : 'New Route'}</h2>
         <div className="grid grid-cols-2 gap-3 mb-6">
           {['from', 'to', 'departureTime'].map(f => (
             <input key={f} placeholder={f.toUpperCase()} value={(formData as any)[f]} onChange={e => setFormData({...formData, [f]: e.target.value})} className="w-full bg-[#050B14] border border-white/10 p-3 ui-label text-[10px] text-white outline-none focus:border-gold rounded" />
           ))}
           <input type="number" placeholder="PRICE" value={formData.price} onChange={e => setFormData({...formData, price: Number(e.target.value)})} className="w-full bg-[#050B14] border border-white/10 p-3 ui-label text-[10px] text-white outline-none focus:border-gold rounded" />
-          <select value={formData.mode} onChange={e => setFormData({...formData, mode: e.target.value})} className="w-full bg-[#050B14] border border-white/10 p-3 ui-label text-[10px] text-white outline-none focus:border-gold rounded">
-            <option value="SHUTTLE_SHARED">Shared Shuttle</option>
-            <option value="SHUTTLE_PRIVATE">Private Shuttle</option>
-            <option value="ISLAND_HOPPING">Island Hopping</option>
-          </select>
+          <input type="number" placeholder="SEATS" value={formData.seatsLeft} onChange={e => setFormData({...formData, seatsLeft: Number(e.target.value)})} className="w-full bg-[#050B14] border border-white/10 p-3 ui-label text-[10px] text-white outline-none focus:border-gold rounded" />
         </div>
         <div className="flex gap-3">
           <button onClick={onClose} className="flex-1 py-3 border border-white/10 text-muted ui-label text-[10px] hover:text-white">CANCEL</button>
@@ -412,16 +341,21 @@ const RouteModal = ({ route, operators, onClose, onSave }: any) => {
 };
 
 const OperatorModal = ({ operator, onClose, onSave }: any) => {
-  const [formData, setFormData] = React.useState(operator || { name: '', phone: '', location: '' });
+  const [formData, setFormData] = React.useState(operator || { name: '', phone: '', type: 'VAN', location: '' });
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-center justify-center px-4">
-      <div className="absolute inset-0 bg-ink/90 backdrop-blur-sm" onClick={onClose} />
-      <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="bg-[#081221] border border-white/10 p-6 md:p-8 max-w-lg w-full relative z-10 rounded-xl">
+      <div className="absolute inset-0 bg-[#050B14]/90 backdrop-blur-sm" onClick={onClose} />
+      <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="bg-[#081221] border border-white/10 p-6 max-w-lg w-full relative z-10 rounded-xl">
         <h2 className="text-xl text-white font-display italic mb-6">{operator ? 'Edit Operator' : 'New Operator'}</h2>
         <div className="space-y-3 mb-6">
-          {['name', 'phone', 'location', 'email'].map(f => (
+          {['name', 'phone', 'location'].map(f => (
             <input key={f} placeholder={f.toUpperCase()} value={(formData as any)[f] || ''} onChange={e => setFormData({...formData, [f]: e.target.value})} className="w-full bg-[#050B14] border border-white/10 p-3 ui-label text-[10px] text-white outline-none focus:border-gold rounded" />
           ))}
+          <select value={formData.type} onChange={e => setFormData({...formData, type: e.target.value})} className="w-full bg-[#050B14] border border-white/10 p-3 ui-label text-[10px] text-white outline-none focus:border-gold rounded">
+            <option value="VAN">Van / Shuttle</option>
+            <option value="BOAT">Bangka / Boat</option>
+            <option value="PRIVATE">Private Transfer</option>
+          </select>
         </div>
         <div className="flex gap-3">
           <button onClick={onClose} className="flex-1 py-3 border border-white/10 text-muted ui-label text-[10px] hover:text-white">CANCEL</button>
