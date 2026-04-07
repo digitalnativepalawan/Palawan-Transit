@@ -275,7 +275,8 @@ export const BookingModal = ({ route, onClose, onComplete }: { route: Route; onC
   const handleComplete = async () => {
     setLoading(true);
     try {
-      const refCode = `PT-2026-${Date.now().toString().slice(-6)}${Math.floor(10 + Math.random() * 90)}`;
+      const uuid = crypto.randomUUID();
+      const refCode = `PT-${uuid.split('-')[0].toUpperCase()}-${uuid.split('-')[1].toUpperCase()}`;
       const pinCode = Math.floor(100000 + Math.random() * 900000).toString();
       const normalizedPhone = phone.replace(/\D/g, '');
       const lastFour = normalizedPhone.slice(-4);
