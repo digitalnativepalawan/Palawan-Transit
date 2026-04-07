@@ -275,11 +275,35 @@ export const BookingModal = ({ route, onClose, onComplete }: { route: Route; onC
     }
   }, [route]);
 
-  const handleComplete = () => {
+  const handleComplete = async () => {
     setLoading(true);
-    setTimeout(() => {
-      onComplete(`PT-2026-${Math.floor(10000 + Math.random() * 90000)}`, phone);
-    }, 2000);
+    try {
+      const refCode = `PT-2026-${Math.floor(10000 + Math.random() * 90000)}`;
+      const normalizedPhone = phone.startsWith('+') ? phone : `+${phone}`;
+
+      const { error } = await supabase.from('bookings').insert({
+        reference_code: refCode,
+        passenger_phone: normalizedPhone,
+        route_id: route.id,
+        from_location: route.from,
+        to_location: isIslandHopping ? tourDetails?.location : route.to,
+        departure_date: route.date,
+        departure_time: route.departureTime,
+        seats: seats,
+        total_amount: getFinalTotal(),
+        payment_method: paymentMethod,
+        status: 'pending',
+        is_island_hopping: isIslandHopping,
+        tour_name: isIslandHopping ? tourDetails?.tour_name : null,
+        group_type: isIslandHopping ? groupType : null,
+      });
+
+      if (error) throw error;
+      onComplete(refCode, normalizedPhone);
+    } catch (err) {
+      console.error('Booking save failed:', err);
+      setLoading(false);
+    }
   };
 
   const getDisplayPrice = () => {
