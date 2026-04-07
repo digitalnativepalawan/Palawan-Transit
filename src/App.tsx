@@ -68,6 +68,7 @@ export default function App() {
           to_location: route.to_location,
           operator: route.operator?.name || 'Unknown Operator',
           operatorId: route.operator_id,
+          operator_id: route.operator_id,
           seatsLeft: route.seats_left,
           departureTime: route.departure_time,
           pickupPoint: route.pickup_point,
@@ -109,35 +110,50 @@ export default function App() {
     setShowPasskeyModal(true);
   };
 
-  const verifyPasskey = () => {
+  const verifyPasskey = async () => {
     const normalizedPasskey = passkey.trim().toUpperCase();
+
+    // Admin access
     if (normalizedPasskey === "5309") {
       setUserRole('ADMIN');
       setPage('ADMIN');
       setShowPasskeyModal(false);
       setPasskey('');
       setPasskeyError(false);
-    } else if (normalizedPasskey === "OP123") {
+      return;
+    }
+
+    // Legacy OP123 for June Transport
+    if (normalizedPasskey === "OP123") {
       setUserRole('OPERATOR');
       setCurrentOperatorId('cb18ed48-924e-4132-b110-bb88811221eb');
       setPage('OPERATOR_PORTAL');
       setShowPasskeyModal(false);
       setPasskey('');
       setPasskeyError(false);
-    } else {
-      const operator = operators.find(o => o.id === normalizedPasskey.toLowerCase());
-      if (operator) {
-        setUserRole('OPERATOR');
-        setCurrentOperatorId(operator.id);
-        setPage('OPERATOR_PORTAL');
-        setShowPasskeyModal(false);
-        setPasskey('');
-        setPasskeyError(false);
-      } else {
-        setPasskeyError(true);
-        setTimeout(() => setPasskeyError(false), 500);
-      }
+      return;
     }
+
+    // Check against passkey field in Supabase
+    const { data } = await supabase
+      .from('operators')
+      .select('id')
+      .eq('passkey', normalizedPasskey)
+      .single();
+
+    if (data) {
+      setUserRole('OPERATOR');
+      setCurrentOperatorId(data.id);
+      setPage('OPERATOR_PORTAL');
+      setShowPasskeyModal(false);
+      setPasskey('');
+      setPasskeyError(false);
+      return;
+    }
+
+    // Wrong passkey
+    setPasskeyError(true);
+    setTimeout(() => setPasskeyError(false), 500);
   };
 
   const handleSearch = (from: string, to: string, date: string, seats: number, searchType?: string, groupType?: string) => {
@@ -275,6 +291,7 @@ export default function App() {
         to: data.to_location,
         operator: route.operator,
         operatorId: data.operator_id,
+        operator_id: data.operator_id,
         seatsLeft: data.seats_left,
         departureTime: data.departure_time,
         pickupPoint: data.pickup_point,
@@ -336,7 +353,9 @@ export default function App() {
         rating: op.rating,
         description: op.description,
         images: op.images || [],
-        permits: op.permits || []
+        permits: op.permits || [],
+        vehicle_photos: op.vehicle_photos || [],
+        passkey: op.passkey || '',
       }])
       .select()
       .single();
