@@ -247,8 +247,13 @@ export default function App() {
   const handleBookingComplete = async (ref: string, phone: string) => {
     const currentRoute = selectedRoute;
     
-    if (!currentRoute) {
+    if (!currentRoute || !currentRoute.id) {
       alert('Booking error: No route selected. Please go back and try again.');
+      return;
+    }
+    
+    if (!currentRoute.operatorId) {
+      alert('Booking error: Route has no operator assigned.');
       return;
     }
     
@@ -277,15 +282,37 @@ export default function App() {
       customer_phone: phone,
     };
 
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from('bookings')
       .insert([newBooking])
       .select()
       .single();
 
     if (error) {
-      alert(`Booking failed: ${error.message}`);
-      return;
+      console.error('Booking insert failed:', error);
+      // Fallback: try with minimal required fields
+      const minimalBooking = {
+        route_id: currentRoute.id,
+        operator_id: currentRoute.operatorId,
+        reference_code: ref,
+        pin_code: pinCode,
+        status: currentRoute.bookingType === 'INSTANT' ? 'CONFIRMED' : 'PENDING',
+        date: currentParams.date,
+        seats: currentParams.seats,
+        total_price: currentRoute.price * currentParams.seats,
+        customer_name: customerName,
+        customer_phone: phone,
+      };
+      const result = await supabase
+        .from('bookings')
+        .insert([minimalBooking])
+        .select()
+        .single();
+      if (result.error) {
+        alert(`Booking failed: ${result.error.message}`);
+        return;
+      }
+      data = result.data;
     }
 
     if (data) {
