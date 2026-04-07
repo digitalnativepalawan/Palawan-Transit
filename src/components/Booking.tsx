@@ -275,19 +275,16 @@ export const BookingModal = ({ route, onClose, onComplete }: { route: Route; onC
   const handleComplete = async () => {
     setLoading(true);
     try {
-      const refCode = `PT-2026-${Math.floor(10000 + Math.random() * 90000)}`;
+      const refCode = `PT-2026-${Date.now().toString().slice(-6)}${Math.floor(10 + Math.random() * 90)}`;
       const pinCode = Math.floor(100000 + Math.random() * 900000).toString();
       const normalizedPhone = phone.replace(/\D/g, '');
       const lastFour = normalizedPhone.slice(-4);
-      const bookingDate = route.departureTime
-        ? new Date().toISOString().split('T')[0]
-        : new Date().toISOString().split('T')[0];
 
       const insertData: any = {
         reference_code: refCode,
         pin_code: pinCode,
         status: 'ACCEPTED',
-        date: bookingDate,
+        date: new Date().toISOString().split('T')[0],
         seats: seats,
         total_price: getFinalTotal(),
         customer_name: customerName.trim() || `Guest ${lastFour}`,
@@ -295,7 +292,6 @@ export const BookingModal = ({ route, onClose, onComplete }: { route: Route; onC
         customer_phone: normalizedPhone,
       };
 
-      // Only add route_id and operator_id if they exist on the route object
       if (route.id) insertData.route_id = route.id;
       if ((route as any).operator_id) insertData.operator_id = (route as any).operator_id;
 
