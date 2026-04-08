@@ -515,6 +515,70 @@ const OperatorDashboardView = ({ bookings, routes }: { bookings: Booking[]; rout
 };
 
 // ============================================
+// OPERATOR CAPACITY MANAGEMENT
+// ============================================
+const CapacityManagementView = ({ routes }: { routes: Route[] }) => {
+  const [updatingId, setUpdatingId] = React.useState<string | null>(null);
+  const sharedRoutes = routes.filter(r => r.mode === 'SHUTTLE_SHARED');
+
+  const updateSeats = async (id: string, current: number, delta: number) => {
+    const next = Math.max(0, Math.min(12, current + delta));
+    if (next === current) return;
+    
+    setUpdatingId(id);
+    const { error } = await supabase
+      .from('routes')
+      .update({ seats_left: next })
+      .eq('id', id);
+    
+    if (error) {
+      alert(`Error updating seats: ${error.message}`);
+    } else {
+      window.location.reload();
+    }
+    setUpdatingId(null);
+  };
+
+  if (sharedRoutes.length === 0) return null;
+
+  return (
+    <div className="space-y-4">
+      <h3 className="ui-label text-[9px] text-gold tracking-[0.2em]">MANAGE VAN CAPACITY (WALK-INS)</h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {sharedRoutes.map(r => (
+          <div key={r.id} className="bg-[#081221] border border-white/10 p-4 rounded-xl flex items-center justify-between">
+            <div className="min-w-0">
+              <p className="text-white font-semibold text-xs truncate">{r.from} → {r.to}</p>
+              <p className="ui-label text-[8px] text-muted mt-0.5">{r.departureTime}</p>
+            </div>
+            <div className="flex items-center gap-3 shrink-0 ml-4">
+              <button 
+                onClick={() => updateSeats(r.id, r.seatsLeft || 0, -1)}
+                disabled={updatingId === r.id || (r.seatsLeft || 0) <= 0}
+                className="w-8 h-8 rounded bg-surface border border-white/10 flex items-center justify-center text-white hover:border-gold transition-colors disabled:opacity-30"
+              >
+                <Minus size={14} />
+              </button>
+              <div className="text-center min-w-[40px]">
+                <p className="text-lg font-display text-white leading-none">{r.seatsLeft ?? 12}</p>
+                <p className="ui-label text-[7px] text-muted mt-1">SEATS</p>
+              </div>
+              <button 
+                onClick={() => updateSeats(r.id, r.seatsLeft || 0, 1)}
+                disabled={updatingId === r.id || (r.seatsLeft || 0) >= 12}
+                className="w-8 h-8 rounded bg-surface border border-white/10 flex items-center justify-center text-white hover:border-gold transition-colors disabled:opacity-30"
+              >
+                <Plus size={14} />
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// ============================================
 // ADMIN DASHBOARD SUMMARY (3 CARD VIEW)
 // ============================================
 const DashboardSummary = ({ bookings, routes }: { bookings: Booking[]; routes: Route[] }) => (
@@ -801,7 +865,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     switch (activeTab) {
       case 'DASHBOARD':
         return isOperatorPortal ? (
-          <OperatorDashboardView bookings={filteredBookings} routes={filteredRoutes} />
+          <div className="space-y-8">
+            <CapacityManagementView routes={filteredRoutes} />
+            <OperatorDashboardView bookings={filteredBookings} routes={filteredRoutes} />
+          </div>
         ) : (
           <DashboardSummary bookings={filteredBookings} routes={filteredRoutes} />
         );

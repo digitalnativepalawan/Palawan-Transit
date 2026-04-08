@@ -14,7 +14,7 @@ export interface Route {
   mode: TransportMode;
   price: number;
   duration: string;
-  seatsLeft: number;
+  seatsLeft: number | null;
   operator: string;
   bookingType: BookingType;
   departureTime: string;

@@ -72,7 +72,7 @@ export default function App() {
           operator: route.operator?.name || 'Unknown Operator',
           operatorId: route.operator_id,
           operator_id: route.operator_id,
-          seatsLeft: route.mode === 'SHUTTLE_SHARED' ? 10 : 1,
+          seatsLeft: route.mode === 'SHUTTLE_SHARED' ? (route.seats_left ?? 12) : null,
           departureTime: route.departure_time,
           pickupPoint: route.pickup_point,
           dropoffPoint: route.dropoff_point,
@@ -245,7 +245,7 @@ export default function App() {
     setSelectedRoute(route);
   };
 
-  const handleBookingComplete = async (ref: string, phone: string, travelDate: string) => {
+  const handleBookingComplete = async (ref: string, phone: string, travelDate: string, updatedSeats?: number) => {
     const currentRoute = selectedRoute;
     
     if (!currentRoute || !currentRoute.id) {
@@ -257,21 +257,43 @@ export default function App() {
       alert('Booking error: Route has no operator assigned.');
       return;
     }
-    
+
+    // --- SEAT CAPACITY CHECK START ---
+    // Fetch latest seats_left from DB before proceeding
+    const { data: latestRoute, error: routeFetchError } = await supabase
+      .from('routes')
+      .select('seats_left, mode')
+      .eq('id', currentRoute.id)
+      .single();
+
+    if (routeFetchError || !latestRoute) {
+      alert('Error verifying seat availability. Please try again.');
+      return;
+    }
+
     const today = new Date().toISOString().split('T')[0];
     const bookingDate = travelDate || searchParams?.date || today;
+    const requestedSeats = updatedSeats || searchParams?.seats || 1;
+
+    // For shared routes, check if enough seats are left
+    if (latestRoute.mode === 'SHUTTLE_SHARED' && latestRoute.seats_left < requestedSeats) {
+      alert(`Sorry, only ${latestRoute.seats_left} seats are remaining for this route.`);
+      return;
+    }
+    // --- SEAT CAPACITY CHECK END ---
+    
     const currentParams = searchParams || {
       from: currentRoute.from,
       to: currentRoute.to,
       date: bookingDate,
-      seats: 1
+      seats: requestedSeats
     };
 
     const customerName = `Guest ${phone.slice(-4)}`;
     const pinCode = generatePin();
 
     const isPrivate = currentRoute.mode === 'SHUTTLE_PRIVATE' || currentRoute.mode === 'PRIVATE_4X4';
-    const bookingTotalPrice = isPrivate ? currentRoute.price : currentRoute.price * currentParams.seats;
+    const bookingTotalPrice = isPrivate ? currentRoute.price : currentRoute.price * requestedSeats;
 
     const newBooking = {
       route_id: currentRoute.id,
@@ -280,7 +302,7 @@ export default function App() {
       pin_code: pinCode,
       status: currentRoute.bookingType === 'INSTANT' ? 'CONFIRMED' : 'PENDING',
       date: bookingDate,
-      seats: currentParams.seats,
+      seats: requestedSeats,
       total_price: bookingTotalPrice,
       customer_name: customerName,
       customer_email: `${customerName.replace(' ', '').toLowerCase()}@guest.com`,
@@ -302,8 +324,8 @@ export default function App() {
         reference_code: ref,
         pin_code: pinCode,
         status: currentRoute.bookingType === 'INSTANT' ? 'CONFIRMED' : 'PENDING',
-        date: currentParams.date,
-        seats: currentParams.seats,
+        date: bookingDate,
+        seats: requestedSeats,
         total_price: bookingTotalPrice,
         customer_name: customerName,
         customer_phone: phone,
@@ -328,6 +350,21 @@ export default function App() {
       setSelectedRoute(null);
       setPage('CONFIRMATION');
       window.scrollTo(0, 0);
+
+      // Decrement seats for shared routes if booking confirmed or pending (reserved)
+      if (currentRoute.mode === 'SHUTTLE_SHARED' && data.status !== 'CANCELLED') {
+        const newSeatsLeft = Math.max(0, latestRoute.seats_left - requestedSeats);
+        const { error: seatError } = await supabase
+          .from('routes')
+          .update({ seats_left: newSeatsLeft })
+          .eq('id', currentRoute.id);
+        
+        if (!seatError) {
+          setRoutes(prev => prev.map(r => 
+            r.id === currentRoute.id ? { ...r, seatsLeft: newSeatsLeft } : r
+          ));
+        }
+      }
     }
   };
 

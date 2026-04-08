@@ -520,8 +520,18 @@ export const RouteCard = ({ route, onClick }: { route: Route; onClick: () => voi
         <span>{route.duration}</span>
         <span>·</span>
         <span className="text-white price-text">₱{route.price?.toLocaleString()}</span>
-        <span>·</span>
-        <span className={route.seatsLeft < 5 ? 'text-danger' : ''}>{route.seatsLeft} SEATS LEFT</span>
+        {route.seatsLeft !== null && (
+          <>
+            <span>·</span>
+            <span className={route.seatsLeft < 5 ? 'text-danger' : ''}>{route.seatsLeft} SEATS LEFT</span>
+          </>
+        )}
+        {route.seatsLeft === null && (
+          <>
+            <span>·</span>
+            <span>{route.mode === 'PRIVATE_4X4' ? 'Private 4x4' : 'Private Vehicle'}</span>
+          </>
+        )}
       </div>
       <div className="mt-4 flex justify-between items-center">
         <span className="ui-label text-[10px] text-muted">{route.operator}</span>
