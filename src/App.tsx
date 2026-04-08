@@ -58,7 +58,7 @@ export default function App() {
         .from('routes')
         .select(`
           *,
-          operator:operators!routes_operator_id_fkey(id, name, phone, whatsapp, rating)
+          operator:operator_id(*)
         `);
       
       if (!routesError && routesData) {
