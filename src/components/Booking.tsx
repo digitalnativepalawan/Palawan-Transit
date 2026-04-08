@@ -242,7 +242,7 @@ export const SearchWidget = ({ onSearch }: { onSearch: (from: string, to: string
 };
 
 // --- Booking Modal ---
-export const BookingModal = ({ route, onClose, onComplete }: { route: Route; onClose: () => void; onComplete: (ref: string, phone: string, date: string) => void }) => {
+export const BookingModal = ({ route, onClose, onComplete, initialSeats = 1 }: { route: Route; onClose: () => void; onComplete: (ref: string, phone: string, date: string, seats: number) => void; initialSeats?: number }) => {
   const [step, setStep] = React.useState(1);
   const [paymentMethod, setPaymentMethod] = React.useState<'ONLINE' | 'ARRIVAL'>('ONLINE');
   const [loading, setLoading] = React.useState(false);
@@ -251,7 +251,7 @@ export const BookingModal = ({ route, onClose, onComplete }: { route: Route; onC
   const [tourDetails, setTourDetails] = React.useState<any>(null);
   const [groupType, setGroupType] = React.useState<'SHARED' | 'PRIVATE'>('SHARED');
   const [totalPrice, setTotalPrice] = React.useState(route.price);
-  const [seats, setSeats] = React.useState(1);
+  const [seats, setSeats] = React.useState(initialSeats);
   const today = new Date().toISOString().split('T')[0];
   const [travelDate, setTravelDate] = React.useState(today);
 
@@ -289,7 +289,7 @@ export const BookingModal = ({ route, onClose, onComplete }: { route: Route; onC
   const handleComplete = () => {
     setLoading(true);
     setTimeout(() => {
-      onComplete(`PT-2026-${Math.floor(10000 + Math.random() * 90000)}`, phone, travelDate);
+      onComplete(`PT-2026-${Math.floor(10000 + Math.random() * 90000)}`, phone, travelDate, seats);
     }, 2000);
   };
 
@@ -408,7 +408,7 @@ export const BookingModal = ({ route, onClose, onComplete }: { route: Route; onC
                   </button>
                   <span className="w-10 text-center font-ui text-white">{seats}</span>
                   <button
-                    onClick={() => setSeats(Math.min(tourDetails?.max_passengers || 10, seats + 1))}
+                    onClick={() => setSeats(Math.min(isIslandHopping ? (tourDetails?.max_passengers || 10) : (route.seatsLeft || 10), seats + 1))}
                     className="flex-grow flex items-center justify-center text-muted hover:text-white transition-colors"
                   >
                     <Plus size={16} />

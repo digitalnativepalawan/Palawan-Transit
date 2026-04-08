@@ -273,8 +273,10 @@ export default function App() {
 
     const today = new Date().toISOString().split('T')[0];
     const bookingDate = travelDate || searchParams?.date || today;
-    // Fix: Prioritize updatedSeats from the modal over searchParams
-    const requestedSeats = updatedSeats ?? searchParams?.seats ?? 1;
+    
+    // CRITICAL: Explicitly prioritize updatedSeats passed from the modal
+    const requestedSeats = (updatedSeats !== undefined && updatedSeats !== null) ? Number(updatedSeats) : (Number(searchParams?.seats) || 1);
+    console.log('[DEBUG] Booking flow:', { updatedSeats, searchSeats: searchParams?.seats, final: requestedSeats });
 
     // For shared routes, check if enough seats are left
     if (latestRoute.mode === 'SHUTTLE_SHARED' && latestRoute.seats_left < requestedSeats) {
@@ -953,7 +955,7 @@ Reference: ${booking.reference_code}
 PIN: ${bookingPin}
 Route: ${searchParams?.from} → ${searchParams?.to}
 Date: ${searchParams?.date}
-Seats: ${searchParams?.seats || 1}
+Seats: ${booking.seats}
 Customer: ${booking.customer_name}
 
 Tap this link to confirm the booking:
@@ -987,6 +989,7 @@ ${confirmUrl}`;
             route={selectedRoute}
             onClose={() => setSelectedRoute(null)}
             onComplete={handleBookingComplete}
+            initialSeats={searchParams?.seats}
           />
         )}
       </AnimatePresence>
