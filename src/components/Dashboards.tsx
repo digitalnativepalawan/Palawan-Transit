@@ -83,7 +83,6 @@ const OperatorProfileSettings = ({ operator, onUpdate }: { operator: any; onUpda
     if (!operator?.id) return;
     setIsSaving(true);
     
-    // Explicitly map fields to prevent sending undefined or extra properties
     const updateData = {
       name: formData.name,
       phone: formData.phone,
@@ -144,7 +143,7 @@ const OperatorProfileSettings = ({ operator, onUpdate }: { operator: any; onUpda
           disabled={isAssigning}
           className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-4 py-2 ui-label text-[8px] tracking-[0.2em] hover:bg-emerald-500/20 transition-all flex items-center gap-2"
         >
-          {isAssigning ? <Loader2 size={12} className="animate-spin" /> : <Map Pin size={12} />}
+          {isAssigning ? <Loader2 size={12} className="animate-spin" /> : <MapPin size={12} />}
           ASSIGN ALL ROUTES
         </button>
       </div>
@@ -380,9 +379,6 @@ const AdminBookingsView = ({ bookings, onUpdateStatus }: { bookings: Booking[]; 
 );
 
 // ============================================
-// DASHBOARD SUMMARY
-// ============================================
-// ============================================
 // OPERATOR DAILY VIEW — TODAY'S BOOKINGS + MONTH SUMMARY
 // ============================================
 const OperatorDashboardView = ({ bookings, routes }: { bookings: Booking[]; routes: Route[] }) => {
@@ -578,6 +574,106 @@ const OperatorsView = ({ operators, onAdd, onEdit, onDelete }: any) => {
 };
 
 // ============================================
+// MODAL COMPONENTS
+// ============================================
+const RouteModal = ({ route, onClose, onSave }: any) => {
+  const [formData, setFormData] = React.useState(route || { from: '', to: '', mode: 'SHUTTLE_SHARED', price: '', departureTime: '', seatsLeft: 12 });
+  const cities = ['Puerto Princesa', 'Port Barton', 'San Vicente', 'El Nido'];
+
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-center justify-center px-4">
+      <div className="absolute inset-0 bg-[#050B14]/90 backdrop-blur-sm" onClick={onClose} />
+      <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="bg-[#081221] border border-white/10 p-6 max-w-lg w-full relative z-10 rounded-xl">
+        <h2 className="text-xl text-white font-display italic mb-6">{route ? 'Edit Route' : 'New Route'}</h2>
+        <div className="grid grid-cols-2 gap-3 mb-6">
+          <div className="space-y-1">
+            <label className="ui-label text-[8px] text-muted tracking-[0.2em]">FROM</label>
+            <select
+              value={(formData as any).from}
+              onChange={e => setFormData({...formData, from: e.target.value})}
+              className="w-full bg-[#050B14] border border-white/10 p-3 ui-label text-[10px] text-white outline-none focus:border-gold rounded"
+            >
+              <option value="">Select Location</option>
+              {cities.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+          <div className="space-y-1">
+            <label className="ui-label text-[8px] text-muted tracking-[0.2em]">TO</label>
+            <select
+              value={(formData as any).to}
+              onChange={e => setFormData({...formData, to: e.target.value})}
+              className="w-full bg-[#050B14] border border-white/10 p-3 ui-label text-[10px] text-white outline-none focus:border-gold rounded"
+            >
+              <option value="">Select Location</option>
+              {cities.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+          <div className="space-y-1">
+            <label className="ui-label text-[8px] text-muted tracking-[0.2em]">DEPARTURE</label>
+            <input 
+              type="time"
+              value={(formData as any).departureTime || ''} 
+              onChange={e => setFormData({...formData, departureTime: e.target.value})} 
+              className="w-full bg-[#050B14] border border-white/10 p-3 ui-label text-[10px] text-white outline-none focus:border-gold rounded" 
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="ui-label text-[8px] text-muted tracking-[0.2em]">PRICE (₱)</label>
+            <input 
+              type="number" 
+              placeholder="e.g. 600" 
+              value={formData.price} 
+              onChange={e => setFormData({...formData, price: e.target.value === '' ? '' : Number(e.target.value)})} 
+              className="w-full bg-[#050B14] border border-white/10 p-3 ui-label text-[10px] text-white outline-none focus:border-gold rounded" 
+            />
+          </div>
+          <select value={formData.mode} onChange={e => setFormData({...formData, mode: e.target.value})} className="col-span-2 w-full bg-[#050B14] border border-white/10 p-3 ui-label text-[10px] text-white outline-none focus:border-gold rounded">
+            <option value="SHUTTLE_SHARED">Shared Shuttle</option>
+            <option value="SHUTTLE_PRIVATE">Private Shuttle</option>
+            <option value="PRIVATE_4X4">Private 4x4</option>
+            <option value="BANGKA">Bangka Boat</option>
+            <option value="ISLAND_HOPPING">Island Hopping</option>
+          </select>
+        </div>
+        <div className="flex gap-3">
+          <button onClick={onClose} className="flex-1 py-3 border border-white/10 text-muted ui-label text-[10px] hover:text-white">CANCEL</button>
+          <button onClick={() => onSave(formData)} className="flex-1 py-3 bg-gold text-ink ui-label text-[10px] font-bold tracking-[0.2em]">SAVE</button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};
+
+const OperatorModal = ({ operator, onClose, onSave }: any) => {
+  const [formData, setFormData] = React.useState(operator || { name: '', phone: '', whatsapp: '', email: '', type: 'VAN', location: '', description: '', passkey: '' });
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-center justify-center px-4">
+      <div className="absolute inset-0 bg-[#050B14]/90 backdrop-blur-sm" onClick={onClose} />
+      <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="bg-[#081221] border border-white/10 p-6 max-w-lg w-full relative z-10 rounded-xl max-h-[90vh] overflow-y-auto">
+        <h2 className="text-xl text-white font-display italic mb-6">{operator ? 'Edit Operator' : 'New Operator'}</h2>
+        <div className="space-y-3 mb-6">
+          {['name', 'phone', 'whatsapp', 'email', 'location'].map(f => (
+            <input key={f} placeholder={f.toUpperCase()} value={(formData as any)[f] || ''} onChange={e => setFormData({...formData, [f]: e.target.value})} className="w-full bg-[#050B14] border border-white/10 p-3 ui-label text-[10px] text-white outline-none focus:border-gold rounded" />
+          ))}
+          <select value={formData.type} onChange={e => setFormData({...formData, type: e.target.value})} className="w-full bg-[#050B14] border border-white/10 p-3 ui-label text-[10px] text-white outline-none focus:border-gold rounded">
+            <option value="VAN">Van / Shuttle (Land Transport)</option>
+            <option value="BOAT">Bangka / Boat (Island Hopping)</option>
+            <option value="PRIVATE">Private Transfer</option>
+            <option value="BOTH">Both Land & Sea</option>
+          </select>
+          <textarea placeholder="DESCRIPTION" value={formData.description || ''} onChange={e => setFormData({...formData, description: e.target.value})} rows={3} className="w-full bg-[#050B14] border border-white/10 p-3 ui-label text-[10px] text-white outline-none focus:border-gold rounded resize-none" />
+          <input placeholder="PASSKEY (e.g. OP123)" value={formData.passkey || ''} onChange={e => setFormData({...formData, passkey: e.target.value})} className="w-full bg-[#050B14] border border-white/10 p-3 ui-label text-[10px] text-gold outline-none focus:border-gold rounded font-mono tracking-wider" />
+        </div>
+        <div className="flex gap-3">
+          <button onClick={onClose} className="flex-1 py-3 border border-white/10 text-muted ui-label text-[10px] hover:text-white">CANCEL</button>
+          <button onClick={() => onSave(formData)} className="flex-1 py-3 bg-gold text-ink ui-label text-[10px] font-bold tracking-[0.2em]">SAVE</button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};
+
+// ============================================
 // MAIN ADMIN DASHBOARD COMPONENT
 // ============================================
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ 
@@ -595,6 +691,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     ? bookings.filter(b => (b as any).operator_id === operatorId)
     : bookings;
 
+  const currentOperator = operators.find(o => o.id === operatorId);
+
   const filteredRoutes = isOperatorPortal
     ? routes.filter(r => {
         const isOwner = (r as any).operator_id === operatorId;
@@ -610,8 +708,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         return true;
       })
     : routes;
-
-  const currentOperator = operators.find(o => o.id === operatorId);
 
   const sidebarItems = isOperatorPortal ? [
     { id: 'DASHBOARD', label: 'My Dashboard', icon: LayoutDashboard },
@@ -713,105 +809,5 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         )}
       </AnimatePresence>
     </div>
-  );
-};
-
-// ============================================
-// MODAL COMPONENTS
-// ============================================
-const RouteModal = ({ route, onClose, onSave }: any) => {
-  const [formData, setFormData] = React.useState(route || { from: '', to: '', mode: 'SHUTTLE_SHARED', price: '', departureTime: '', seatsLeft: 12 });
-  const cities = ['Puerto Princesa', 'Port Barton', 'San Vicente', 'El Nido'];
-
-  return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-center justify-center px-4">
-      <div className="absolute inset-0 bg-[#050B14]/90 backdrop-blur-sm" onClick={onClose} />
-      <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="bg-[#081221] border border-white/10 p-6 max-w-lg w-full relative z-10 rounded-xl">
-        <h2 className="text-xl text-white font-display italic mb-6">{route ? 'Edit Route' : 'New Route'}</h2>
-        <div className="grid grid-cols-2 gap-3 mb-6">
-          <div className="space-y-1">
-            <label className="ui-label text-[8px] text-muted tracking-[0.2em]">FROM</label>
-            <select
-              value={(formData as any).from}
-              onChange={e => setFormData({...formData, from: e.target.value})}
-              className="w-full bg-[#050B14] border border-white/10 p-3 ui-label text-[10px] text-white outline-none focus:border-gold rounded"
-            >
-              <option value="">Select Location</option>
-              {cities.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
-          </div>
-          <div className="space-y-1">
-            <label className="ui-label text-[8px] text-muted tracking-[0.2em]">TO</label>
-            <select
-              value={(formData as any).to}
-              onChange={e => setFormData({...formData, to: e.target.value})}
-              className="w-full bg-[#050B14] border border-white/10 p-3 ui-label text-[10px] text-white outline-none focus:border-gold rounded"
-            >
-              <option value="">Select Location</option>
-              {cities.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
-          </div>
-          <div className="space-y-1">
-            <label className="ui-label text-[8px] text-muted tracking-[0.2em]">DEPARTURE</label>
-            <input 
-              type="time"
-              value={(formData as any).departureTime || ''} 
-              onChange={e => setFormData({...formData, departureTime: e.target.value})} 
-              className="w-full bg-[#050B14] border border-white/10 p-3 ui-label text-[10px] text-white outline-none focus:border-gold rounded" 
-            />
-          </div>
-          <div className="space-y-1">
-            <label className="ui-label text-[8px] text-muted tracking-[0.2em]">PRICE (₱)</label>
-            <input 
-              type="number" 
-              placeholder="e.g. 600" 
-              value={formData.price} 
-              onChange={e => setFormData({...formData, price: e.target.value === '' ? '' : Number(e.target.value)})} 
-              className="w-full bg-[#050B14] border border-white/10 p-3 ui-label text-[10px] text-white outline-none focus:border-gold rounded" 
-            />
-          </div>
-          <select value={formData.mode} onChange={e => setFormData({...formData, mode: e.target.value})} className="col-span-2 w-full bg-[#050B14] border border-white/10 p-3 ui-label text-[10px] text-white outline-none focus:border-gold rounded">
-            <option value="SHUTTLE_SHARED">Shared Shuttle</option>
-            <option value="SHUTTLE_PRIVATE">Private Shuttle</option>
-            <option value="PRIVATE_4X4">Private 4x4</option>
-            <option value="BANGKA">Bangka Boat</option>
-            <option value="ISLAND_HOPPING">Island Hopping</option>
-          </select>
-        </div>
-        <div className="flex gap-3">
-          <button onClick={onClose} className="flex-1 py-3 border border-white/10 text-muted ui-label text-[10px] hover:text-white">CANCEL</button>
-          <button onClick={() => onSave(formData)} className="flex-1 py-3 bg-gold text-ink ui-label text-[10px] font-bold tracking-[0.2em]">SAVE</button>
-        </div>
-      </motion.div>
-    </motion.div>
-  );
-};
-
-const OperatorModal = ({ operator, onClose, onSave }: any) => {
-  const [formData, setFormData] = React.useState(operator || { name: '', phone: '', whatsapp: '', email: '', type: 'VAN', location: '', description: '', passkey: '' });
-  return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-center justify-center px-4">
-      <div className="absolute inset-0 bg-[#050B14]/90 backdrop-blur-sm" onClick={onClose} />
-      <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="bg-[#081221] border border-white/10 p-6 max-w-lg w-full relative z-10 rounded-xl max-h-[90vh] overflow-y-auto">
-        <h2 className="text-xl text-white font-display italic mb-6">{operator ? 'Edit Operator' : 'New Operator'}</h2>
-        <div className="space-y-3 mb-6">
-          {['name', 'phone', 'whatsapp', 'email', 'location'].map(f => (
-            <input key={f} placeholder={f.toUpperCase()} value={(formData as any)[f] || ''} onChange={e => setFormData({...formData, [f]: e.target.value})} className="w-full bg-[#050B14] border border-white/10 p-3 ui-label text-[10px] text-white outline-none focus:border-gold rounded" />
-          ))}
-          <select value={formData.type} onChange={e => setFormData({...formData, type: e.target.value})} className="w-full bg-[#050B14] border border-white/10 p-3 ui-label text-[10px] text-white outline-none focus:border-gold rounded">
-            <option value="VAN">Van / Shuttle (Land Transport)</option>
-            <option value="BOAT">Bangka / Boat (Island Hopping)</option>
-            <option value="PRIVATE">Private Transfer</option>
-            <option value="BOTH">Both Land & Sea</option>
-          </select>
-          <textarea placeholder="DESCRIPTION" value={formData.description || ''} onChange={e => setFormData({...formData, description: e.target.value})} rows={3} className="w-full bg-[#050B14] border border-white/10 p-3 ui-label text-[10px] text-white outline-none focus:border-gold rounded resize-none" />
-          <input placeholder="PASSKEY (e.g. OP123)" value={formData.passkey || ''} onChange={e => setFormData({...formData, passkey: e.target.value})} className="w-full bg-[#050B14] border border-white/10 p-3 ui-label text-[10px] text-gold outline-none focus:border-gold rounded font-mono tracking-wider" />
-        </div>
-        <div className="flex gap-3">
-          <button onClick={onClose} className="flex-1 py-3 border border-white/10 text-muted ui-label text-[10px] hover:text-white">CANCEL</button>
-          <button onClick={() => onSave(formData)} className="flex-1 py-3 bg-gold text-ink ui-label text-[10px] font-bold tracking-[0.2em]">SAVE</button>
-        </div>
-      </motion.div>
-    </motion.div>
   );
 };
