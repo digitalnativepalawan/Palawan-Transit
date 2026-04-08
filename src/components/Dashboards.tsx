@@ -146,30 +146,45 @@ const OperatorProfileSettings = ({ operator, onUpdate }: { operator: any; onUpda
 
   const handleAssignAllRoutes = async () => {
     if (!operator?.id) return;
-    if (selectedTypes.length === 0) {
+    const vehicleTypes = selectedTypes;
+    if (vehicleTypes.length === 0) {
       alert('Please select at least one service type first.');
       return;
     }
     
     const modesToAssign: string[] = [];
-    if (selectedTypes.includes('VAN')) modesToAssign.push('SHUTTLE_SHARED', 'SHUTTLE_PRIVATE');
-    if (selectedTypes.includes('PRIVATE_4X4')) modesToAssign.push('PRIVATE_4X4');
-    if (selectedTypes.includes('BOAT')) modesToAssign.push('ISLAND_HOPPING');
+    if (vehicleTypes.includes('VAN')) modesToAssign.push('SHUTTLE_SHARED', 'SHUTTLE_PRIVATE');
+    if (vehicleTypes.includes('PRIVATE_4X4')) modesToAssign.push('PRIVATE_4X4');
+    if (vehicleTypes.includes('BOAT')) modesToAssign.push('ISLAND_HOPPING');
 
     if (modesToAssign.length === 0) return;
 
-    if (!confirm(`Link all platform routes matching [${modesToAssign.join(', ')}] to your account?`)) return;
+    if (!confirm(`Link all platform routes matching [${modesToAssign.join(', ')}] to your account? This will clear your previous assignments FIRST.`)) return;
     
     setIsAssigning(true);
-    const { error } = await supabase
+    
+    // Step 1: Remove all existing routes for this operator
+    const { error: clearError } = await supabase
+      .from('routes')
+      .update({ operator_id: null })
+      .eq('operator_id', operator.id);
+
+    if (clearError) {
+      alert(`Error clearing existing routes: ${clearError.message}`);
+      setIsAssigning(false);
+      return;
+    }
+
+    // Step 2: Assign new ones based on current vehicle types
+    const { error: assignError } = await supabase
       .from('routes')
       .update({ operator_id: operator.id })
       .in('mode', modesToAssign);
 
-    if (error) {
-      alert(`Error linking routes: ${error.message}`);
+    if (assignError) {
+      alert(`Error linking new routes: ${assignError.message}`);
     } else {
-      alert(`Successfully linked ${modesToAssign.length} route types to your account!`);
+      alert(`Successfully synced routes for types: ${vehicleTypes.join(', ')}`);
       window.location.reload();
     }
     setIsAssigning(false);
@@ -754,13 +769,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         if (!isOwner) return false;
         if (!currentOperator) return true;
 
-        if (currentOperator.type === 'VAN') {
-          return ['SHUTTLE_SHARED', 'SHUTTLE_PRIVATE', 'PRIVATE_4X4'].includes(r.mode);
-        }
-        if (currentOperator.type === 'BOAT') {
-          return r.mode === 'ISLAND_HOPPING';
-        }
-        return true;
+        const vehicleTypes = (currentOperator.vehicle_types || '').split(',').filter(Boolean);
+        if (vehicleTypes.length === 0) return true;
+
+        const modesToShow: string[] = [];
+        if (vehicleTypes.includes('VAN')) modesToShow.push('SHUTTLE_SHARED', 'SHUTTLE_PRIVATE');
+        if (vehicleTypes.includes('PRIVATE_4X4')) modesToShow.push('PRIVATE_4X4');
+        if (vehicleTypes.includes('BOAT')) modesToShow.push('ISLAND_HOPPING');
+
+        return modesToShow.includes(r.mode);
       })
     : routes;
 
