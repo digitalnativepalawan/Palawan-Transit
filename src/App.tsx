@@ -72,7 +72,7 @@ export default function App() {
           operator: route.operator?.name || 'Unknown Operator',
           operatorId: route.operator_id,
           operator_id: route.operator_id,
-          seatsLeft: route.seats_left,
+          seatsLeft: route.mode === 'SHUTTLE_SHARED' ? 10 : 1,
           departureTime: route.departure_time,
           pickupPoint: route.pickup_point,
           dropoffPoint: route.dropoff_point,
@@ -506,8 +506,8 @@ export default function App() {
     if (!searchParams) return true;
     if (isIslandSearch) return r.mode === 'ISLAND_HOPPING';
     const matchesSearch = 
-      r.from.toLowerCase().trim().includes(searchParams.from.toLowerCase().trim()) &&
-      r.to.toLowerCase().trim().includes(searchParams.to.toLowerCase().trim());
+      r.from.trim() === searchParams.from.trim() &&
+      r.to.trim() === searchParams.to.trim();
     if (!matchesSearch) return false;
     if (activeFilter === 'ALL') return true;
     if (activeFilter === 'SHARED') return r.mode.includes('SHARED');
