@@ -273,7 +273,8 @@ export default function App() {
 
     const today = new Date().toISOString().split('T')[0];
     const bookingDate = travelDate || searchParams?.date || today;
-    const requestedSeats = updatedSeats || searchParams?.seats || 1;
+    // Fix: Prioritize updatedSeats from the modal over searchParams
+    const requestedSeats = updatedSeats ?? searchParams?.seats ?? 1;
 
     // For shared routes, check if enough seats are left
     if (latestRoute.mode === 'SHUTTLE_SHARED' && latestRoute.seats_left < requestedSeats) {
