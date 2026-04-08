@@ -82,7 +82,7 @@ export interface Booking {
 
 export type SearchType = 'TRANSPORT' | 'ISLAND_HOPPING';
 
-export const CITIES = ['Puerto Princesa', 'El Nido', 'Coron', 'Port Barton', 'San Vicente'];
+export const CITIES = ['Puerto Princesa', 'El Nido', 'Port Barton', 'San Vicente'];
 export const ISLAND_LOCATIONS = ['Port Barton', 'San Vicente', 'El Nido'];
 export const TOURS = ['Island Hop Tour A', 'Island Hop Tour B', 'Island Hop Tour C', 'Underground River Tour', 'Firefly Watching'];
 export const DESTINATIONS = [...CITIES, ...TOURS];
