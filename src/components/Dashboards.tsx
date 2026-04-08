@@ -29,8 +29,16 @@ type AdminTab = 'DASHBOARD' | 'BOOKINGS' | 'ROUTES' | 'OPERATORS' | 'PAYMENTS' |
 
 // ============================================
 // OPERATOR PROFILE SETTINGS (FULL FORM)
-// ============================================
 const OperatorProfileSettings = ({ operator, onUpdate }: { operator: any; onUpdate: (op: any) => void }) => {
+  const getInitialTypes = () => {
+    try {
+      const parsed = JSON.parse(operator?.type || '[]');
+      return Array.isArray(parsed) ? parsed : [operator?.type || 'VAN'];
+    } catch {
+      return [operator?.type || 'VAN'];
+    }
+  };
+
   const [formData, setFormData] = React.useState({
     name: operator?.name || '',
     phone: operator?.phone || '',
@@ -38,15 +46,21 @@ const OperatorProfileSettings = ({ operator, onUpdate }: { operator: any; onUpda
     email: operator?.email || '',
     location: operator?.location || '',
     description: operator?.description || '',
-    type: operator?.type || 'VAN',
     passkey: operator?.passkey || '',
   });
+  const [selectedTypes, setSelectedTypes] = React.useState<string[]>(getInitialTypes());
   const [isSaving, setIsSaving] = React.useState(false);
   const [saved, setSaved] = React.useState(false);
   const [vehicleImages, setVehicleImages] = React.useState<string[]>(operator?.vehicle_photos || operator?.images || []);
   const [permitImage, setPermitImage] = React.useState<string>(operator?.permits?.[0] || '');
   const [uploadingVehicle, setUploadingVehicle] = React.useState(false);
   const [uploadingPermit, setUploadingPermit] = React.useState(false);
+
+  const toggleType = (type: string) => {
+    setSelectedTypes(prev => 
+      prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
+    );
+  };
 
   const uploadImage = async (file: File, bucket: string): Promise<string | null> => {
     const ext = file.name.split('.').pop();
@@ -83,6 +97,7 @@ const OperatorProfileSettings = ({ operator, onUpdate }: { operator: any; onUpda
     if (!operator?.id) return;
     setIsSaving(true);
     
+    // Explicitly map fields to prevent sending undefined or extra properties
     const updateData = {
       name: formData.name,
       phone: formData.phone,
@@ -90,7 +105,7 @@ const OperatorProfileSettings = ({ operator, onUpdate }: { operator: any; onUpda
       email: formData.email,
       location: formData.location,
       description: formData.description,
-      type: formData.type,
+      type: JSON.stringify(selectedTypes),
       passkey: formData.passkey || '',
       vehicle_photos: vehicleImages,
       images: vehicleImages,
@@ -117,18 +132,30 @@ const OperatorProfileSettings = ({ operator, onUpdate }: { operator: any; onUpda
 
   const handleAssignAllRoutes = async () => {
     if (!operator?.id) return;
-    if (!confirm('Link ALL existing routes to this operator? This will overwrite previous assignments.')) return;
+    if (selectedTypes.length === 0) {
+      alert('Please select at least one service type first.');
+      return;
+    }
+    
+    const modesToAssign: string[] = [];
+    if (selectedTypes.includes('VAN')) modesToAssign.push('SHUTTLE_SHARED', 'SHUTTLE_PRIVATE');
+    if (selectedTypes.includes('PRIVATE_4X4')) modesToAssign.push('PRIVATE_4X4');
+    if (selectedTypes.includes('BOAT')) modesToAssign.push('ISLAND_HOPPING');
+
+    if (modesToAssign.length === 0) return;
+
+    if (!confirm(`Link all platform routes matching [${modesToAssign.join(', ')}] to your account?`)) return;
     
     setIsAssigning(true);
     const { error } = await supabase
       .from('routes')
       .update({ operator_id: operator.id })
-      .filter('id', 'not.is', null);
+      .in('mode', modesToAssign);
 
     if (error) {
       alert(`Error linking routes: ${error.message}`);
     } else {
-      alert('All routes successfully linked to this operator!');
+      alert(`Successfully linked ${modesToAssign.length} route types to your account!`);
       window.location.reload();
     }
     setIsAssigning(false);
@@ -167,18 +194,32 @@ const OperatorProfileSettings = ({ operator, onUpdate }: { operator: any; onUpda
               />
             </div>
           ))}
-          <div className="space-y-1">
-            <label className="ui-label text-[8px] text-muted tracking-[0.2em]">SERVICE TYPE</label>
-            <select
-              value={formData.type}
-              onChange={e => setFormData({ ...formData, type: e.target.value })}
-              className="w-full bg-[#050B14] border border-white/10 p-3 ui-label text-[10px] text-white outline-none focus:border-gold rounded transition-colors"
-            >
-              <option value="VAN">Van / Shuttle (Land Transport)</option>
-              <option value="BOAT">Bangka / Boat (Island Hopping)</option>
-              <option value="PRIVATE">Private Transfer</option>
-              <option value="BOTH">Both Land & Sea</option>
-            </select>
+          <div className="space-y-1 md:col-span-2">
+            <label className="ui-label text-[8px] text-muted tracking-[0.2em] mb-2 block">SERVICE TYPE(S)</label>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              {[
+                { id: 'VAN', label: 'VAN / SHUTTLE' },
+                { id: 'PRIVATE_4X4', label: 'PRIVATE 4X4' },
+                { id: 'BOAT', label: 'BANGKA / BOAT' }
+              ].map(t => (
+                <button
+                  key={t.id}
+                  onClick={() => toggleType(t.id)}
+                  className={`flex items-center gap-3 p-3 rounded border transition-all ${
+                    selectedTypes.includes(t.id) 
+                      ? 'bg-gold/10 border-gold text-gold' 
+                      : 'bg-[#050B14] border-white/10 text-muted hover:border-white/20'
+                  }`}
+                >
+                  <div className={`w-4 h-4 rounded-sm border flex items-center justify-center ${
+                    selectedTypes.includes(t.id) ? 'bg-gold border-gold' : 'border-white/20'
+                  }`}>
+                    {selectedTypes.includes(t.id) && <Check size={12} className="text-ink" />}
+                  </div>
+                  <span className="ui-label text-[9px] tracking-wider">{t.label}</span>
+                </button>
+              ))}
+            </div>
           </div>
           <div className="space-y-1">
             <label className="ui-label text-[8px] text-muted tracking-[0.2em]">PORTAL PASSKEY</label>
