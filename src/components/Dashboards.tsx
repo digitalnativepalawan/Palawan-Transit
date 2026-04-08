@@ -2,7 +2,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   LayoutDashboard, BookOpen, Map, Users, CreditCard, BarChart3, 
-  UserCircle, Settings as SettingsIcon, Check, X, Plus, 
+  UserCircle, Settings as SettingsIcon, Check, X, Plus, Minus, RefreshCw, 
   MapPin, Calendar, Users as UsersIcon, CreditCard as CreditCardIcon, 
   Loader2, Menu, Trash2, Edit2, Upload, Image, Copy
 } from 'lucide-react';
