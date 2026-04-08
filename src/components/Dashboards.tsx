@@ -31,12 +31,19 @@ type AdminTab = 'DASHBOARD' | 'BOOKINGS' | 'ROUTES' | 'OPERATORS' | 'PAYMENTS' |
 // OPERATOR PROFILE SETTINGS (FULL FORM)
 const OperatorProfileSettings = ({ operator, onUpdate }: { operator: any; onUpdate: (op: any) => void }) => {
   const getInitialTypes = () => {
+    if (operator?.vehicle_types) {
+      return operator.vehicle_types.split(',').filter(Boolean);
+    }
+    // Fallback for legacy data
     try {
       const parsed = JSON.parse(operator?.type || '[]');
-      return Array.isArray(parsed) ? parsed : [operator?.type || 'VAN'];
-    } catch {
-      return [operator?.type || 'VAN'];
-    }
+      if (Array.isArray(parsed)) return parsed;
+    } catch (e) {}
+    
+    // Map existing single type to array
+    if (operator?.type === 'LAND_TRANSPORT') return ['VAN'];
+    if (operator?.type === 'ISLAND_HOPPING') return ['BOAT'];
+    return [operator?.type || 'VAN'];
   };
 
   const [formData, setFormData] = React.useState({
@@ -97,6 +104,10 @@ const OperatorProfileSettings = ({ operator, onUpdate }: { operator: any; onUpda
     if (!operator?.id) return;
     setIsSaving(true);
     
+    // Map primary type for ENUM column
+    const primarySelected = selectedTypes[0] || 'VAN';
+    const mappedPrimaryType = (primarySelected === 'BOAT') ? 'ISLAND_HOPPING' : 'LAND_TRANSPORT';
+
     // Explicitly map fields to prevent sending undefined or extra properties
     const updateData = {
       name: formData.name,
@@ -105,7 +116,8 @@ const OperatorProfileSettings = ({ operator, onUpdate }: { operator: any; onUpda
       email: formData.email,
       location: formData.location,
       description: formData.description,
-      type: JSON.stringify(selectedTypes),
+      type: mappedPrimaryType,
+      vehicle_types: selectedTypes.join(','),
       passkey: formData.passkey || '',
       vehicle_photos: vehicleImages,
       images: vehicleImages,
