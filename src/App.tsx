@@ -506,12 +506,12 @@ export default function App() {
     if (!searchParams) return true;
     if (isIslandSearch) return r.mode === 'ISLAND_HOPPING';
     const matchesSearch = 
-      r.from.toLowerCase().trim() === searchParams.from.toLowerCase().trim() &&
-      r.to.toLowerCase().trim() === searchParams.to.toLowerCase().trim();
+      r.from.toLowerCase().trim().includes(searchParams.from.toLowerCase().trim()) &&
+      r.to.toLowerCase().trim().includes(searchParams.to.toLowerCase().trim());
     if (!matchesSearch) return false;
     if (activeFilter === 'ALL') return true;
-    if (activeFilter === 'SHARED') return r.mode === 'SHUTTLE_SHARED';
-    if (activeFilter === 'PRIVATE') return r.mode === 'SHUTTLE_PRIVATE';
+    if (activeFilter === 'SHARED') return r.mode.includes('SHARED');
+    if (activeFilter === 'PRIVATE') return r.mode.includes('PRIVATE');
     if (activeFilter === '4X4') return r.mode === 'PRIVATE_4X4';
     if (activeFilter === 'BOAT') return r.mode === 'BANGKA' || r.mode === 'ISLAND_HOPPING';
     return true;
