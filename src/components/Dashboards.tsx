@@ -104,9 +104,11 @@ const OperatorProfileSettings = ({ operator, onUpdate }: { operator: any; onUpda
     if (!operator?.id) return;
     setIsSaving(true);
     
-    // Map primary type for ENUM column
+    // Map primary type for ENUM column (Allowed: VAN, BOAT, PRIVATE, BOTH)
     const primarySelected = selectedTypes[0] || 'VAN';
-    const mappedPrimaryType = (primarySelected === 'BOAT') ? 'ISLAND_HOPPING' : 'LAND_TRANSPORT';
+    let mappedPrimaryType = 'VAN';
+    if (primarySelected === 'BOAT') mappedPrimaryType = 'BOAT';
+    if (primarySelected === 'PRIVATE_4X4') mappedPrimaryType = 'PRIVATE';
 
     // Explicitly map fields to prevent sending undefined or extra properties
     const updateData = {
