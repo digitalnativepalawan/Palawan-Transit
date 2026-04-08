@@ -724,45 +724,45 @@ const RouteModal = ({ route, onClose, onSave }: any) => {
   const cities = ['Puerto Princesa', 'Port Barton', 'San Vicente', 'El Nido'];
 
   return (
-    <<motionmotion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-center justify-center px-4">
-      <<divdiv className="absolute inset-0 bg-[#050B14]/90 backdrop-blur-sm" onClick={onClose} />
-      <<motionmotion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="bg-[#081221] border border-white/10 p-6 max-w-lg w-full relative z-10 rounded-xl">
-        <<hh2 className="text-xl text-white font-display italic mb-6">{route ? 'Edit Route' : 'New Route'}</h2>
-        <<divdiv className="grid grid-cols-2 gap-3 mb-6">
-          <<divdiv className="space-y-1">
-            <<labellabel className="ui-label text-[8px] text-muted tracking-[0.2em]">FROM</label>
-            <<selectselect
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-center justify-center px-4">
+      <div className="absolute inset-0 bg-[#050B14]/90 backdrop-blur-sm" onClick={onClose} />
+      <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="bg-[#081221] border border-white/10 p-6 max-w-lg w-full relative z-10 rounded-xl">
+        <h2 className="text-xl text-white font-display italic mb-6">{route ? 'Edit Route' : 'New Route'}</h2>
+        <div className="grid grid-cols-2 gap-3 mb-6">
+          <div className="space-y-1">
+            <label className="ui-label text-[8px] text-muted tracking-[0.2em]">FROM</label>
+            <select
               value={(formData as any).from}
               onChange={e => setFormData({...formData, from: e.target.value})}
               className="w-full bg-[#050B14] border border-white/10 p-3 ui-label text-[10px] text-white outline-none focus:border-gold rounded"
             >
-              <<optionoption value="">Select Location</option>
-              {cities.map(c => <<optionoption key={c} value={c}>{c}</option>)}
+              <option value="">Select Location</option>
+              {cities.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
-          <<divdiv className="space-y-1">
-            <<labellabel className=\"ui-label text-[8px] text-muted tracking-[0.2em]\">TO</label>
-            <<selectselect
+          <div className="space-y-1">
+            <label className="ui-label text-[8px] text-muted tracking-[0.2em]">TO</label>
+            <select
               value={(formData as any).to}
               onChange={e => setFormData({...formData, to: e.target.value})}
               className="w-full bg-[#050B14] border border-white/10 p-3 ui-label text-[10px] text-white outline-none focus:border-gold rounded"
             >
-              <<optionoption value="">Select Location</option>
-              {cities.map(c => <<optionoption key={c} value={c}>{c}</option>)}
+              <option value="">Select Location</option>
+              {cities.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
-          <<divdiv className="space-y-1">
-            <<labellabel className="ui-label text-[8px] text-muted tracking-[0.2em]">DEPARTURE</label>
-            <<inputinput 
+          <div className="space-y-1">
+            <label className="ui-label text-[8px] text-muted tracking-[0.2em]">DEPARTURE</label>
+            <input 
               type="time"
               value={(formData as any).departureTime || ''} 
               onChange={e => setFormData({...formData, departureTime: e.target.value})} 
               className="w-full bg-[#050B14] border border-white/10 p-3 ui-label text-[10px] text-white outline-none focus:border-gold rounded" 
             />
           </div>
-          <<divdiv className="space-y-1">
-            <<labellabel className="ui-label text-[8px] text-muted tracking-[0.2em]">PRICE (₱)</label>
-            <<inputinput 
+          <div className="space-y-1">
+            <label className="ui-label text-[8px] text-muted tracking-[0.2em]">PRICE (₱)</label>
+            <input 
               type="number" 
               placeholder="e.g. 600" 
               value={formData.price} 
@@ -770,22 +770,21 @@ const RouteModal = ({ route, onClose, onSave }: any) => {
               className="w-full bg-[#050B14] border border-white/10 p-3 ui-label text-[10px] text-white outline-none focus:border-gold rounded" 
             />
           </div>
-          <<selectselect value={formData.mode} onChange={e => setFormData({...formData, mode: e.target.value})} className="col-span-2 w-full bg-[#050B14] border border-white/10 p-3 ui-label text-[10px] text-white outline-none focus:border-gold rounded">
-            <<optionoption value="SHUTTLE_SHARED">Shared Shuttle</option>
-            <<optionoption value="SHUTTLE_PRIVATE">Private Shuttle</option>
-            <<optionoption value="PRIVATE_4X4">Private 4x4</option>
-            <<optionoption value="BANGKA">Bangka Boat</option>
-            <<optionoption value="ISLAND_HOPPING">Island Hopping</option>
+          <select value={formData.mode} onChange={e => setFormData({...formData, mode: e.target.value})} className="col-span-2 w-full bg-[#050B14] border border-white/10 p-3 ui-label text-[10px] text-white outline-none focus:border-gold rounded">
+            <option value="SHUTTLE_SHARED">Shared Shuttle</option>
+            <option value="SHUTTLE_PRIVATE">Private Shuttle</option>
+            <option value="PRIVATE_4X4">Private 4x4</option>
+            <option value="BANGKA">Bangka Boat</option>
+            <option value="ISLAND_HOPPING">Island Hopping</option>
           </select>
         </div>
-        <<divdiv className="flex gap-3">
-          <<buttonbutton onClick={onClose} className="flex-1 py-3 border border-white/10 text-muted ui-label text-[10px] hover:text-white">CANCEL</button>
-          <<buttonbutton onClick={() => onSave(formData)} className="flex-1 py-3 bg-gold text-ink ui-label text-[10px] font-bold tracking-[0.2em]">SAVE</button>
+        <div className="flex gap-3">
+          <button onClick={onClose} className="flex-1 py-3 border border-white/10 text-muted ui-label text-[10px] hover:text-white">CANCEL</button>
+          <button onClick={() => onSave(formData)} className="flex-1 py-3 bg-gold text-ink ui-label text-[10px] font-bold tracking-[0.2em]">SAVE</button>
         </div>
       </motion.div>
     </motion.div>
   );
-};
 };
 
 const OperatorModal = ({ operator, onClose, onSave }: any) => {
