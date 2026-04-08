@@ -82,15 +82,31 @@ const OperatorProfileSettings = ({ operator, onUpdate }: { operator: any; onUpda
   const handleSave = async () => {
     if (!operator?.id) return;
     setIsSaving(true);
+    
+    // Explicitly map fields to prevent sending undefined or extra properties
     const updateData = {
-      ...formData,
+      name: formData.name,
+      phone: formData.phone,
+      whatsapp: formData.whatsapp,
+      email: formData.email,
+      location: formData.location,
+      description: formData.description,
+      type: formData.type,
+      passkey: formData.passkey || '',
       vehicle_photos: vehicleImages,
       images: vehicleImages,
       permits: permitImage ? [permitImage] : [],
-      passkey: formData.passkey || '',
     };
-    const { error } = await supabase.from('operators').update(updateData).eq('id', operator.id);
-    if (!error) {
+
+    const { error } = await supabase
+      .from('operators')
+      .update(updateData)
+      .eq('id', operator.id);
+
+    if (error) {
+      console.error('Error updating operator:', error.message, error.details);
+      alert(`Failed to save: ${error.message}`);
+    } else {
       onUpdate({ ...operator, ...updateData });
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
@@ -549,7 +565,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     : bookings;
 
   const filteredRoutes = isOperatorPortal
-    ? routes.filter(r => (r as any).operator_id === operatorId)
+    ? routes.filter(r => {
+        const isOwner = (r as any).operator_id === operatorId;
+        if (!isOwner) return false;
+        if (!currentOperator) return true;
+
+        if (currentOperator.type === 'VAN') {
+          return ['SHUTTLE_SHARED', 'SHUTTLE_PRIVATE', 'PRIVATE_4X4'].includes(r.mode);
+        }
+        if (currentOperator.type === 'BOAT') {
+          return r.mode === 'ISLAND_HOPPING';
+        }
+        return true;
+      })
     : routes;
 
   const currentOperator = operators.find(o => o.id === operatorId);
