@@ -353,16 +353,17 @@ export default function App() {
 
       // Decrement seats for shared routes if booking confirmed or pending (reserved)
       if (currentRoute.mode === 'SHUTTLE_SHARED' && data.status !== 'CANCELLED') {
-        const newSeatsLeft = Math.max(0, latestRoute.seats_left - requestedSeats);
-        const { error: seatError } = await supabase
-          .from('routes')
-          .update({ seats_left: newSeatsLeft })
-          .eq('id', currentRoute.id);
-        
-        if (!seatError) {
+        const { error: rpcError } = await supabase.rpc('decrement_route_seats', {
+          target_route_id: currentRoute.id,
+          seats_to_subtract: requestedSeats
+        });
+
+        if (!rpcError) {
           setRoutes(prev => prev.map(r => 
-            r.id === currentRoute.id ? { ...r, seatsLeft: newSeatsLeft } : r
+            r.id === currentRoute.id ? { ...r, seatsLeft: Math.max(0, (r.seatsLeft || 0) - requestedSeats) } : r
           ));
+        } else {
+          console.error('Seat decrement error:', rpcError);
         }
       }
     }
