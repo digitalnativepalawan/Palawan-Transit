@@ -506,8 +506,8 @@ export default function App() {
     if (!searchParams) return true;
     if (isIslandSearch) return r.mode === 'ISLAND_HOPPING';
     const matchesSearch = 
-      r.from.toLowerCase().includes(searchParams.from.toLowerCase()) &&
-      r.to.toLowerCase().includes(searchParams.to.toLowerCase());
+      r.from.toLowerCase().trim() === searchParams.from.toLowerCase().trim() &&
+      r.to.toLowerCase().trim() === searchParams.to.toLowerCase().trim();
     if (!matchesSearch) return false;
     if (activeFilter === 'ALL') return true;
     if (activeFilter === 'SHARED') return r.mode === 'SHUTTLE_SHARED';

@@ -14,6 +14,15 @@ export const SearchWidget = ({ onSearch }: { onSearch: (from: string, to: string
   const [searchType, setSearchType] = React.useState<SearchType>('TRANSPORT');
   const [from, setFrom] = React.useState(CITIES[0]);
   const [to, setTo] = React.useState(CITIES[1]);
+
+  // Sync "TO" if "FROM" changes to avoid same-city selection
+  React.useEffect(() => {
+    if (from === to) {
+      const nextCity = CITIES.find(c => c !== from);
+      if (nextCity) setTo(nextCity);
+    }
+  }, [from]);
+
   const [tourLocation, setTourLocation] = React.useState('Port Barton');
   const [selectedTour, setSelectedTour] = React.useState<any>(null);
   const [tours, setTours] = React.useState<any[]>([]);
